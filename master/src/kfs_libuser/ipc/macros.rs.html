@@ -1,0 +1,953 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `libuser/src/ipc/macros.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>macros.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+</pre><div class="example-wrap"><pre class="rust ">
+<span class="doccomment">//! IPC Macros</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Various macros used to simplify the operation of IPCs.</span>
+
+<span class="doccomment">/// Auto derive Object.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Takes a service implementation as a parameter, and auto-derives Object,</span>
+<span class="doccomment">/// generating the dispatcher logic. The syntax for using it is as under:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```rust</span>
+<span class="doccomment">/// # #[macro_use] extern crate kfs_libuser; fn main() {</span>
+<span class="doccomment">/// use kfs_libuser::error::Error;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// struct Service;</span>
+<span class="doccomment">/// object! {</span>
+<span class="doccomment">///     impl Service {</span>
+<span class="doccomment">///         #[cmdid(0)]</span>
+<span class="doccomment">///         fn test(&amp;mut self, val: u32,) -&gt; Result&lt;(u32,), Error&gt; {</span>
+<span class="doccomment">///             Ok((0,))</span>
+<span class="doccomment">///         }</span>
+<span class="doccomment">///     }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// # }</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Allowed argument types:</span>
+<span class="doccomment">/// - Pid: the Pid of the remote process, from the Handle Descriptor</span>
+<span class="doccomment">/// - Handle&lt;move&gt;: A Handle in the Handle Descriptor&#39;s move handle list.</span>
+<span class="doccomment">/// - Handle&lt;copy&gt;: A Handle in the Handle Descriptor&#39;s copy handle list.</span>
+<span class="comment">// TODO: Input Object! We should be able to take an ObjectWrapper&lt;T: IObject&gt;</span>
+<span class="doccomment">/// - InBuffer/OutBuffer/InPointer/OutPointer: Equivalent to A/B/C/X buffers.</span>
+<span class="doccomment">/// - &amp;WaitableManager: The manager that signaled us.</span>
+<span class="doccomment">/// - T where T: Copy, Clone, repr(C): passed through Raw Data.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Allowed return types:</span>
+<span class="doccomment">/// - Pid: The current Pid, from the Handle Descriptor.</span>
+<span class="doccomment">/// - Handle: A Handle in the Handle Descriptor&#39;s move handle list.</span>
+<span class="doccomment">/// - HandleRef: A Handle in the Handle Descriptor&#39;s copy handle list.</span>
+<span class="doccomment">/// - &lt;T: IObject&gt;: An Object that will be added to the current</span>
+<span class="doccomment">///   WaitableManager for processing. Either added to the Handle Descriptor copy</span>
+<span class="doccomment">///   handle list, or as a domain object</span>
+<span class="doccomment">/// - T where T: Copy, Clone, repr(C): passed through Raw Data.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Important note: the return value **has** to be a `Result&lt;(Type,...), Error&gt;`.</span>
+<span class="doccomment">/// The function *must* take &amp;mut self as a first argument. And right now, as a</span>
+<span class="doccomment">/// small caveat, the argument list and return tuple list must end with a coma.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The implementation will be left verbatim (except for the cmdid). A separate</span>
+<span class="doccomment">/// `impl Object for Service` block will be generated.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This macro is deeply recursive. If used, you&#39;ll likely need to add</span>
+<span class="doccomment">/// `#![recursion_limit = &quot;1024&quot;]` - or more - to your crate root.</span>
+<span class="comment">//</span>
+<span class="comment">// Note to maintainers: This macro uses a few powerful patterns:</span>
+<span class="comment">// - Incremental TT Muncher</span>
+<span class="comment">// - Internal Rules</span>
+<span class="comment">// - Push-Down Accumulation</span>
+<span class="comment">// I highly recommend reading through https://danielkeep.github.io/tlborm/book</span>
+<span class="comment">// before diving into this abomination.</span>
+<span class="comment">//</span>
+<span class="comment">// Also, to future me: Yes, generating from SwIPC would&#39;ve been a much better</span>
+<span class="comment">// idea. But where&#39;s the fun in that?</span>
+<span class="attribute">#[<span class="ident">macro_export</span>]</span>
+<span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">object</span> {
+    <span class="comment">// Top level match arm. Matches the typename. Generates an impl block that</span>
+    <span class="comment">// will copy the input block almost verbatim - simply removing the cmdid. And</span>
+    <span class="comment">// separately generates an impl Object for Service block that will contain</span>
+    <span class="comment">// the dispatch method.</span>
+    (<span class="kw">impl</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">tyname</span>:<span class="ident">ident</span> {
+        $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>:<span class="ident">tt</span>)<span class="op">*</span>
+    }) <span class="op">=&gt;</span> {
+        <span class="kw">impl</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">tyname</span> {
+            <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>(), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>)<span class="kw-2">*</span>);
+        }
+
+        <span class="kw">impl</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">ipc</span>::<span class="ident">server</span>::<span class="ident">Object</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">tyname</span> {
+            <span class="kw">fn</span> <span class="ident">dispatch</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">manager</span>: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">ipc</span>::<span class="ident">server</span>::<span class="ident">WaitableManager</span>, <span class="ident">cmdid</span>: <span class="ident">u32</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>]) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">error</span>::<span class="ident">Error</span><span class="op">&gt;</span> {
+                <span class="comment">//object!(@enum $($fns)*)</span>
+                <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">dispatch</span> <span class="self">self</span>, <span class="ident">manager</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="ident">cmdid</span>, <span class="ident">buf</span><span class="op">=</span><span class="ident">buf</span>, <span class="ident">fns</span><span class="op">=</span>(), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>)<span class="kw-2">*</span>)
+            }
+        }
+    };
+
+    <span class="comment">// ------------------ Function Block -----------------</span>
+    <span class="comment">// We&#39;re processing each function, one by one. The goal of this block is to</span>
+    <span class="comment">// remove the #[cmdid(0)] block that would be invalid if left alone.</span>
+    <span class="comment">// This block has one argument, meta, which is a list of function meta items</span>
+    <span class="comment">// to output with the function.</span>
+
+    <span class="comment">// Start by checking for a cmdid block. If we find one, skip it.</span>
+    (@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="attribute">#[<span class="ident">cmdid</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">expr</span>:<span class="ident">expr</span>)]</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>),<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// If we find any other kind of meta parameter, accumulate it in the meta</span>
+    <span class="comment">// list. Note the use of a small trick: we match using $(meta),*, and then</span>
+    <span class="comment">// repeat with $(meta,)*. This adds a trailing coma if the list was not</span>
+    <span class="comment">// empty. THis pattern will be used throughout the macro.</span>
+    (@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fmeta</span>:<span class="ident">meta</span>]</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">fmeta</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// Match the actual function. Some limitations:</span>
+    <span class="comment">// - The function cannot be generic.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Outputs the function, resets the meta list, and go to the next function.</span>
+    <span class="comment">//</span>
+    <span class="comment">// TODO: Object Macro: Take Error type as $ty</span>
+    <span class="comment">// BODY: We currently match the Error token exactly, which is overly restrictive.</span>
+    <span class="comment">// BODY: A user might want to rename the Error type, etc...</span>
+    (@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="kw">fn</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span> $(<span class="op">&lt;</span>$(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span><span class="op">&gt;</span>)<span class="op">*</span> (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro-nonterminal">$</span><span class="self">self</span>:<span class="macro-nonterminal">ident</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">Error</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, ($($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>),<span class="kw-2">*</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>, (), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>);
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>(), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// All functions have been processed. We can now stop parsing.</span>
+    (@<span class="ident">functions</span> <span class="ident">meta</span><span class="op">=</span>(), ) <span class="op">=&gt;</span> {};
+
+    <span class="comment">// ------------------ Arg Rewriting Block ------------</span>
+    <span class="comment">// We&#39;re going to do some light processing on arguments to remove some invalid</span>
+    <span class="comment">// syntax. We want to turn Handle&lt;move&gt; and Handle&lt;copy&gt; into Handle.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Note: we&#39;re taking self as an independant parameter to make sure we don&#39;t</span>
+    <span class="comment">// break hygiene.</span>
+    (@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>:<span class="macro-nonterminal">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>:<span class="ident">ident</span> : <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span> : <span class="ident">Handle</span><span class="op">&lt;</span><span class="ident">copy</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>: <span class="ident">Handle</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>)<span class="kw-2">*</span>);
+    };
+    (@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>:<span class="macro-nonterminal">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>:<span class="ident">ident</span> : <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span> : <span class="ident">Handle</span><span class="op">&lt;</span><span class="kw">move</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>: <span class="ident">Handle</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>)<span class="kw-2">*</span>);
+    };
+    (@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>:<span class="macro-nonterminal">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>:<span class="ident">ident</span> : <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span> : <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">argname</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">argty</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rest</span>)<span class="kw-2">*</span>);
+    };
+    (@<span class="ident">rewriteargs</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>:<span class="ident">meta</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="self">self</span>:<span class="macro-nonterminal">ident</span>, ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span>, ) <span class="op">=&gt;</span> {
+        $(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">meta</span>]</span>)<span class="op">*</span>
+        <span class="kw">fn</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span> <span class="op">&lt;</span>$(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>),<span class="kw-2">*</span><span class="op">&gt;</span> (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="macro-nonterminal">$</span><span class="self">self</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>), <span class="ident">Error</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>
+    };
+
+
+    <span class="comment">// ------------------ Dispatch Block -----------------</span>
+    <span class="comment">// We&#39;re processing each function again, one by one. The goal of this block</span>
+    <span class="comment">// is to generate a big match on the cmdid, where each block contains the</span>
+    <span class="comment">// IPC buffer parsing code, calls the associated function, and packs the</span>
+    <span class="comment">// returned values to the IPC buffer.</span>
+    <span class="comment">//</span>
+    <span class="comment">// This function takes 6 arguments:</span>
+    <span class="comment">// - sel: A &amp;mut self. Used to call the function (because of</span>
+    <span class="comment">//        macro hygiene rules, we can&#39;t just hardcode &quot;self&quot;).</span>
+    <span class="comment">// - cmdid: The cmdid we need to generate the match block on. Comes from the</span>
+    <span class="comment">//          dispatch arguments (again, this is working around hygiene).</span>
+    <span class="comment">// - buf: A &amp;mut [u8], the IPC buffer we parse from and pack to. Again,</span>
+    <span class="comment">//        hygiene.</span>
+    <span class="comment">// - fns: A list of cmdid =&gt; block, basically the arms of the generated</span>
+    <span class="comment">//        match. Should be initially empty, will be accumulated through</span>
+    <span class="comment">//        recursion.</span>
+
+    <span class="comment">// Again, let&#39;s start by looking for a cmdid block. If we find one, save it</span>
+    <span class="comment">// as a new fcmdid argument.</span>
+    (@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>:<span class="ident">expr</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>:<span class="ident">expr</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="attribute">#[<span class="ident">cmdid</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>:<span class="ident">expr</span>)]</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>)<span class="kw-2">*</span>), <span class="ident">fcmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// If we find any other meta item before cmdid, skip it.</span>
+    (@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>:<span class="ident">expr</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>:<span class="ident">expr</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fmeta</span>:<span class="ident">meta</span>]</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// If we find any other meta item after cmdid, skip it.</span>
+    (@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>:<span class="ident">expr</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>:<span class="ident">expr</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">fcmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>:<span class="ident">expr</span>, <span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fmeta</span>:<span class="ident">meta</span>]</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fns</span>)<span class="kw-2">*</span>), <span class="ident">fcmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// Match the actual function. Add to the fns list a new cmdid =&gt; block item</span>
+    <span class="comment">// for the currently matched function (this is the $cufcmdid =&gt; {} block).</span>
+    <span class="comment">// This block will contain the actual parsing code.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Refer to the comments in the macro for how it works inside the hood.</span>
+    (@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>:<span class="ident">expr</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>:<span class="ident">expr</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>:<span class="ident">expr</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdfn</span>:<span class="ident">block</span>),<span class="kw-2">*</span>), <span class="ident">fcmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">curfcmdid</span>:<span class="ident">expr</span>,
+       <span class="kw">fn</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span> $(<span class="op">&lt;</span>$(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span>),<span class="kw-2">*</span><span class="op">&gt;</span>)<span class="op">*</span> (<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">Error</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">block</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="comment">// Recursively call ourselves with the next function, adding a new cmdid =&gt; block to the fns aggregation.</span>
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdfn</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">curfcmdid</span> <span class="op">=&gt;</span> {
+            <span class="comment">// In this block, we start by generating a `struct Args` that will</span>
+            <span class="comment">// contain all the *raw* arguments.</span>
+            <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="ident">Args</span> <span class="ident">fields</span><span class="op">=</span>(), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>);
+            <span class="comment">// We then parse the IPC buffer.</span>
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msgin</span> <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">ipc</span>::<span class="ident">Message</span>::<span class="op">&lt;</span><span class="ident">Args</span>, [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>)],
+                                            [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>)],
+                                            [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>)]<span class="op">&gt;</span>::<span class="ident">unpack</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>);
+            <span class="comment">// This will generate the self.function(); invocation with all the</span>
+            <span class="comment">// correct arguments popped from the msgin struct.</span>
+            <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="ident">msgin</span>, <span class="ident">args</span><span class="op">=</span>(), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>);
+            <span class="comment">// We now want to create the msgout. Basically the same as msgin, but</span>
+            <span class="comment">// using the return types instead. Note that bufcount and co work on</span>
+            <span class="comment">// both name: ty, and ty, lists.</span>
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">msgout</span> <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">ipc</span>::<span class="ident">Message</span>::<span class="op">&lt;</span><span class="kw">_</span>, [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>)],
+                                          [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>)],
+                                          [<span class="kw">_</span>; <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>)]<span class="op">&gt;</span>::<span class="ident">new_response</span>(<span class="ident">msgin</span>.<span class="ident">token</span>());
+            <span class="comment">// Finally, generate the struct Ret (which we elided above), and push</span>
+            <span class="comment">// all the arguments to msgout.</span>
+            <span class="kw">match</span> <span class="ident">ret</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">ret</span>) <span class="op">=&gt;</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>(), <span class="ident">retfields</span><span class="op">=</span>(), <span class="ident">msgout</span>, <span class="ident">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>)<span class="kw-2">*</span>),
+                <span class="prelude-val">Err</span>(<span class="ident">err</span>) <span class="op">=&gt;</span> { <span class="ident">msgout</span>.<span class="ident">set_error</span>(<span class="ident">err</span>.<span class="ident">into_code</span>()); }
+            }
+            <span class="comment">// Pack the message to msgout and we&#39;re done :D</span>
+            <span class="ident">msgout</span>.<span class="ident">pack</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>);
+            <span class="prelude-val">Ok</span>(())
+        }), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We parsed all the functions \o/. All that&#39;s left to do is taking the fns</span>
+    <span class="comment">// list, and creating a big match from it.</span>
+    (@<span class="ident">dispatch</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">cmdid</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span>:<span class="ident">expr</span>, <span class="ident">buf</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">buf</span>:<span class="ident">expr</span>, <span class="ident">fns</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span>:<span class="ident">expr</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmd</span>:<span class="ident">block</span>),<span class="kw-2">*</span>), ) <span class="op">=&gt;</span> {
+        <span class="kw">match</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">cmdid</span> {
+            $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmdid</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">fcmd</span>,)<span class="op">*</span>
+            <span class="ident">cmd</span> <span class="op">=&gt;</span> {
+                <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">syscalls</span>::<span class="ident">output_debug_string</span>(<span class="kw-2">&amp;</span><span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;Unknown cmdid: {}&quot;</span>, <span class="ident">cmd</span>));
+                <span class="prelude-val">Err</span>(<span class="macro-nonterminal">$</span><span class="kw">crate</span>::<span class="macro-nonterminal">error</span>::<span class="ident">KernelError</span>::<span class="ident">PortRemoteDead</span>.<span class="ident">into</span>())
+            }
+        }
+    };
+
+    <span class="comment">// -------------- Arg Structure Gen ------------------</span>
+    <span class="comment">// We now want to be generating the argument struct. This is a fairly &quot;easy&quot;</span>
+    <span class="comment">// macro. It will generate a structure that contains a field for every raw</span>
+    <span class="comment">// argument (it will skip over IPC Buffers, Handles and Pid).</span>
+    <span class="comment">//</span>
+    <span class="comment">// It has 1 argument: fields, a list of `ident: ty`, the fields of our</span>
+    <span class="comment">// structure. It should be initially empty.</span>
+    <span class="comment">//</span>
+    <span class="comment">// One kind of annoying restrictions of rust macros: a $ty cannot be followed</span>
+    <span class="comment">// by a $tt. This is, from what I&#39;m told, for two reasons: 1. it can be</span>
+    <span class="comment">// ambiguous (Do we match Result or Result&lt;()&gt; ?) and 2. future extensions</span>
+    <span class="comment">// could change the syntax of a type.</span>
+    <span class="comment">//</span>
+    <span class="comment">// The end-result, though, is that we need a delimiter. The coma will do</span>
+    <span class="comment">// that job - but it means our argument list *must* end with a coma (OR, I</span>
+    <span class="comment">// guess I could also duplicate all the rules, but removing the `, $($tt)*`</span>
+    <span class="comment">// bit - to handle the &quot;we&#39;re the last argument&quot; case. But this macro is</span>
+    <span class="comment">// already large enough).</span>
+
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">InBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">OutBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">InPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">OutPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Handle</span><span class="op">&lt;</span><span class="kw">move</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Handle</span><span class="op">&lt;</span><span class="ident">copy</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the non-raw types.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Pid</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Let&#39;s skip all the WaitableManager references.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="kw-2">&amp;</span><span class="ident">WaitableManager</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Match a raw type! We want to add it to the fields list, as $name: $ty.</span>
+    <span class="comment">// We again use the same old trick to append a coma if the list is non-empty.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">iname</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ity</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">iname</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ity</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// We&#39;re done parsing all the arguments. Generate the actual structure.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Note: It should be repr(C) to ensure correct ordering, alignment, etc...</span>
+    <span class="comment">// We also make it derive Debug to ease debugging, and Clone of Copy out of</span>
+    <span class="comment">// requirement.</span>
+    (@<span class="ident">genstruct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span>:<span class="ident">ident</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), ) <span class="op">=&gt;</span> {
+        <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+        <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>, <span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
+        <span class="kw">struct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ident</span> {
+            $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>),<span class="op">*</span>
+        }
+    };
+
+    <span class="comment">// ------------- IPC Implementation Call --------------</span>
+    <span class="comment">// We&#39;re now all ready to call the underlying IPC function implementation.</span>
+    <span class="comment">// Depending on the input type, we&#39;ll want to call different methods from</span>
+    <span class="comment">// msgin.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Takes 4 arguments:</span>
+    <span class="comment">//</span>
+    <span class="comment">// - sel: a &amp;mut self. Hygiene.</span>
+    <span class="comment">// - funcname: The name of the underlying function implementation.</span>
+    <span class="comment">// - msgin: the Message we&#39;ll pop our arguments from. Hygiene.</span>
+    <span class="comment">// - args: A list of expressions that will be accumulated into, containing</span>
+    <span class="comment">//         the arguments. Initially empty.</span>
+    <span class="comment">//</span>
+    <span class="comment">// TODO: an input HandleRef makes no sense. Ideally, I&#39;d have Handle&lt;copy&gt;</span>
+    <span class="comment">// and Handle&lt;move&gt;, and would remove the &lt;copy&gt; and &lt;move&gt; from the input?</span>
+    <span class="comment">// Alternatively, have a HandleCopy and HandleMove types, but meh.</span>
+
+    <span class="comment">// We got an InBuffer (type A). Let&#39;s call pop_in_buffer.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">InBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_in_buffer</span>::<span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span><span class="op">&gt;</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got an OutBuffer (type B). Let&#39;s call pop_out_buffer.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">OutBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_out_buffer</span>::<span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span><span class="op">&gt;</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got an InPointer (type X). Let&#39;s call pop_in_pointer.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">InPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_in_pointer</span>::<span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span><span class="op">&gt;</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got an OutPointer (type C). Let&#39;s call pop_out_pointer.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">OutPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_out_pointer</span>::<span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span><span class="op">&gt;</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got a Handle. Let&#39;s call pop_handle_move.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Handle</span><span class="op">&lt;</span><span class="kw">move</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_handle_move</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got a Handle. Let&#39;s call pop_handle_copy.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Handle</span><span class="op">&lt;</span><span class="ident">copy</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_handle_copy</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got a Pid. Let&#39;s call pop_pid.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="ident">Pid</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">pop_pid</span>()<span class="question-mark">?</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got a WaitableManager. Let&#39;s send the manager argument</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="kw-2">&amp;</span><span class="ident">WaitableManager</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We got any other type. We want to recover it from the raw() structure. See</span>
+    <span class="comment">// @genargs for more information about how the raw structure looks like.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>,)<span class="op">*</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>.<span class="ident">raw</span>().<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>), $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    <span class="comment">// We&#39;re done parsing everything! Let&#39;s generate the actual call.</span>
+    (@<span class="ident">callargs</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">manager</span>:<span class="ident">expr</span>, <span class="ident">funcname</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>:<span class="ident">ident</span>, <span class="ident">msgin</span><span class="op">=</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgin</span>:<span class="ident">expr</span>, <span class="ident">args</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), ) <span class="op">=&gt;</span> {
+        <span class="macro-nonterminal">$</span><span class="macro-nonterminal">sel</span>.<span class="macro-nonterminal">$</span><span class="macro-nonterminal">funcname</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>),<span class="kw-2">*</span>)
+    };
+
+    <span class="comment">// -------------- Ret Structure Gen ------------------</span>
+    <span class="comment">// Now that we called our function, we&#39;ll want to parse its return values,</span>
+    <span class="comment">// in order to pack it. This means generating a new structure! Except this</span>
+    <span class="comment">// time, we don&#39;t have any names for all the fields! And we get a tuple</span>
+    <span class="comment">// output, but we can&#39;t really access the fields easily. We can&#39;t really</span>
+    <span class="comment">// &quot;iterate&quot; on a tuple, can we?</span>
+    <span class="comment">//</span>
+    <span class="comment">// For the structure, we&#39;ll simply generate a tuple struct. All we care about</span>
+    <span class="comment">// is that it&#39;s repr(C) anyways, and rust is more than happy to generate</span>
+    <span class="comment">// repr(C) tuple structs, so long as all its fields are C types.</span>
+    <span class="comment">//</span>
+    <span class="comment">// For the return value, we&#39;ll use destructuring, and weaponize macro hygiene</span>
+    <span class="comment">// to gain the ability to generate new identifiers for every argument! Small</span>
+    <span class="comment">// primer for hygiene: every identifier is bound to a context (which is</span>
+    <span class="comment">// basically &quot;where it was declared&quot;). Two identifiers with the same name but</span>
+    <span class="comment">// different contexts resolve to two separate instances!</span>
+    <span class="comment">//</span>
+    <span class="comment">// In this macro, you&#39;ll see &quot;arg&quot; repeated a lot. Keep in mind that, thanks</span>
+    <span class="comment">// to hygiene, every recursion into object!() generates a new context, and so</span>
+    <span class="comment">// although all the arguments are called &quot;arg&quot;, they all resolve to different</span>
+    <span class="comment">// variables.</span>
+    <span class="comment">//</span>
+    <span class="comment">// A small note: structure field names are not hygienic, which is why we use</span>
+    <span class="comment">// tuple structs.</span>
+    <span class="comment">//</span>
+    <span class="comment">// We take 4 arguments:</span>
+    <span class="comment">// - fields: A list of ident: ty used by the tuple struct. The ident is the</span>
+    <span class="comment">//           name of the variable destructured from ret. Initially empty.</span>
+    <span class="comment">// - retfields: A list of idents =&gt; expr used to destructure the $ret tuple,</span>
+    <span class="comment">//              and push all its values to $msgout. Initially empty.</span>
+    <span class="comment">// - msgout: The Message we&#39;re pushing our variables into. Hygiene.</span>
+    <span class="comment">// - ret: The tuple result from the IPC function implementation.</span>
+
+    <span class="comment">// Parse an InBuffer. Call $msgout.push_in_buffer(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">InBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_in_buffer</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse an OutBuffer. Call $msgout.push_out_buffer(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">OutBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_out_buffer</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse an InPointer. Call $msgout.push_in_pointer(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">InPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_in_pointer</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse an OutPointer. Call $msgout.push_out_pointer(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">OutPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_out_pointer</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse a Handle. Call $msgout.push_handle_move(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">Handle</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_handle_move</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse a HandleRef. Call $msgout.push_handle_copy(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">HandleRef</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">lifetime</span>:<span class="ident">lifetime</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_handle_copy</span>(<span class="ident">arg</span>)), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse a Pid. Call $msgout.push_pid(arg).</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="ident">Pid</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">args</span>)<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_pid</span>()), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// Parse a raw type. Don&#39;t call anything (is (); even a legal statement?).</span>
+    <span class="comment">// Add the type to the fields list.</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">iname</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ity</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">iname</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ity</span>,)<span class="op">*</span> <span class="ident">arg</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>,)<span class="op">*</span> <span class="ident">arg</span> <span class="op">=&gt;</span> ()), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    <span class="comment">// We&#39;re done parsing everything. Generate the structure, destructure $ret,</span>
+    <span class="comment">// call all the functions to push values to msgout, and push_raw.</span>
+    (@<span class="ident">genret</span> <span class="ident">fields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>),<span class="kw-2">*</span>), <span class="ident">retfields</span><span class="op">=</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>:<span class="ident">ident</span> <span class="op">=&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>:<span class="ident">expr</span>),<span class="kw-2">*</span>), <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>:<span class="ident">expr</span>, ) <span class="op">=&gt;</span> {{
+        <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+        <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>, <span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
+        <span class="kw">struct</span> <span class="ident">Ret</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>,)<span class="kw-2">*</span>);
+
+        <span class="kw">let</span> ($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rname</span>,)<span class="kw-2">*</span>) <span class="op">=</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ret</span>;
+        $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">rfn</span>;)<span class="op">*</span>
+        <span class="macro-nonterminal">$</span><span class="macro-nonterminal">msgout</span>.<span class="ident">push_raw</span>(<span class="ident">Ret</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>,)<span class="kw-2">*</span>));
+    }};
+
+    <span class="comment">// -------------- Counters ---------------------------</span>
+    <span class="comment">// Some dumb utility macros that are used to count how many of each type of</span>
+    <span class="comment">// argument there are - so we can configure the ArrayVecs properly.</span>
+    <span class="comment">// bufcount counts *Buffer, movecount counts Handle&lt;move&gt; or Handle and copycount counts</span>
+    <span class="comment">// Handle&lt;copy&gt; or HandleRef. I don&#39;t think I need to document all the rules, they&#39;re fairly</span>
+    <span class="comment">// straightforward.</span>
+    <span class="comment">// And yes, [T; 1 + 1 + 1 + 0] is a valid type!</span>
+    (@<span class="ident">bufcount</span> ) <span class="op">=&gt;</span> { <span class="number">0</span> };
+    (@<span class="ident">bufcount</span> <span class="ident">InBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">bufcount</span> <span class="ident">OutBuffer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">bufcount</span> <span class="ident">InPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">bufcount</span> <span class="ident">OutPointer</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">bufcount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">bufcount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">bufcount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+    
+    (@<span class="ident">copycount</span> ) <span class="op">=&gt;</span> { <span class="number">0</span> };
+    (@<span class="ident">copycount</span> <span class="ident">HandleRef</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">copycount</span> <span class="ident">Handle</span><span class="op">&lt;</span><span class="ident">copy</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">copycount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">copycount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">copycount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+
+    (@<span class="ident">movecount</span>) <span class="op">=&gt;</span> { <span class="number">0</span> };
+    (@<span class="ident">movecount</span> <span class="ident">Handle</span><span class="op">&lt;</span><span class="kw">move</span><span class="op">&gt;</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">movecount</span> <span class="ident">Handle</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="number">1</span> <span class="op">+</span> <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">movecount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">ty</span>:<span class="ident">ty</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>)
+    };
+    (@<span class="ident">movecount</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>:<span class="ident">ident</span>: $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) <span class="op">=&gt;</span> {
+        <span class="macro">object</span><span class="macro">!</span>(@<span class="ident">movecount</span> $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">tt</span>)<span class="kw-2">*</span>);
+    };
+}
+</pre></div>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../../";window.currentCrate = "kfs_libuser";</script><script src="../../../aliases.js"></script><script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script><script defer src="../../../search-index.js"></script></body></html>

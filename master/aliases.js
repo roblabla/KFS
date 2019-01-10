@@ -1,0 +1,10 @@
+var ALIASES = {};
+ALIASES["kfs_bootstrap"] = {};
+ALIASES["kfs_clock"] = {};
+ALIASES["kfs_kernel"] = {};
+ALIASES["kfs_libkern"] = {};
+ALIASES["kfs_libuser"] = {};
+ALIASES["kfs_libutils"] = {};
+ALIASES["kfs_shell"] = {};
+ALIASES["kfs_sm"] = {};
+ALIASES["kfs_vi"] = {};

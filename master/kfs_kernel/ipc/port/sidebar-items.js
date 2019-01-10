@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["new","Create a new Port pair. Those ports are linked to each-other: The server will receive connections from the client."]],"struct":[["ClientPort","The client side of a Port."],["IncomingConnection",""],["Port","An endpoint which can be connected to."],["ServerPort","The server side of a Port."]]});

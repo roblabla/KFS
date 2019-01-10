@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["RESERVED_HEAP_SIZE",""]],"fn":[["rust_oom","Called when the kernel heap allocator detects Out Of Memory (OOM) condition."]],"struct":[["Allocator","Simple wrapper around linked_list_allocator, growing heap by allocating pages with the frame allocator as necessary."]]});

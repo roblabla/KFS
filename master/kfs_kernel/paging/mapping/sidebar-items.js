@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["MappingType","The types that a UserSpace mapping can be in."]],"struct":[["Mapping","A memory mapping. Stores the address, the length, and the type it maps."]]});

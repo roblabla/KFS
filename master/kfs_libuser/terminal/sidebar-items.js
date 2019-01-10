@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["FONT_SIZE","The size we choose to render in"]],"enum":[["WindowSize","Window creation requested size."]],"static":[["FONT","The font we choose to render in"]],"struct":[["Pos","Just an x and a y"],["Terminal","A struct for logging text to the window. Renders characters from a .ttf font using the font-rs crate"]]});

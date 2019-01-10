@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["COM1",""],["COM2",""],["COM3",""],["COM4",""]],"enum":[["SerialColor","The possible colors for serial"]],"static":[["G_SERIAL",""]],"struct":[["ComPort","The port of a COM"],["SerialAttributes","A foreground and a background combination"],["SerialInternal",""],["SerialLogger","A logger that sends its output to COM1."]]});

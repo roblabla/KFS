@@ -1,0 +1,1333 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `kernel/src/process.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>process.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+<span id="631">631</span>
+<span id="632">632</span>
+<span id="633">633</span>
+<span id="634">634</span>
+<span id="635">635</span>
+<span id="636">636</span>
+<span id="637">637</span>
+<span id="638">638</span>
+<span id="639">639</span>
+<span id="640">640</span>
+<span id="641">641</span>
+<span id="642">642</span>
+<span id="643">643</span>
+<span id="644">644</span>
+<span id="645">645</span>
+<span id="646">646</span>
+<span id="647">647</span>
+<span id="648">648</span>
+<span id="649">649</span>
+<span id="650">650</span>
+<span id="651">651</span>
+<span id="652">652</span>
+<span id="653">653</span>
+<span id="654">654</span>
+<span id="655">655</span>
+<span id="656">656</span>
+<span id="657">657</span>
+<span id="658">658</span>
+<span id="659">659</span>
+<span id="660">660</span>
+<span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
+</pre><div class="example-wrap"><pre class="rust ">
+<span class="doccomment">//! Process</span>
+
+<span class="kw">use</span> <span class="ident">stack</span>::<span class="ident">KernelStack</span>;
+<span class="kw">use</span> <span class="ident">i386</span>::<span class="ident">process_switch</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">paging</span>::<span class="ident">process_memory</span>::<span class="ident">ProcessMemory</span>;
+<span class="kw">use</span> <span class="ident">alloc</span>::<span class="ident">boxed</span>::<span class="ident">Box</span>;
+<span class="kw">use</span> <span class="ident">alloc</span>::<span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">Weak</span>};
+<span class="kw">use</span> <span class="ident">alloc</span>::<span class="ident">collections</span>::<span class="ident">BTreeMap</span>;
+<span class="kw">use</span> <span class="ident">alloc</span>::<span class="ident">string</span>::<span class="ident">String</span>;
+<span class="kw">use</span> <span class="ident">alloc</span>::<span class="ident">vec</span>::<span class="ident">Vec</span>;
+<span class="kw">use</span> <span class="ident">event</span>::<span class="ident">Waitable</span>;
+<span class="kw">use</span> <span class="ident">sync</span>::{<span class="ident">SpinLockIRQ</span>, <span class="ident">SpinLock</span>, <span class="ident">Mutex</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">sync</span>::<span class="ident">atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">AtomicUsize</span>, <span class="ident">Ordering</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>};
+<span class="kw">use</span> <span class="ident">scheduler</span>;
+<span class="kw">use</span> <span class="ident">error</span>::{<span class="ident">KernelError</span>, <span class="ident">UserspaceError</span>};
+<span class="kw">use</span> <span class="ident">ipc</span>::{<span class="ident">ServerPort</span>, <span class="ident">ClientPort</span>, <span class="ident">ServerSession</span>, <span class="ident">ClientSession</span>};
+<span class="kw">use</span> <span class="ident">mem</span>::<span class="ident">VirtualAddress</span>;
+<span class="kw">use</span> <span class="ident">failure</span>::<span class="ident">Backtrace</span>;
+<span class="kw">use</span> <span class="ident">frame_allocator</span>::<span class="ident">PhysicalMemRegion</span>;
+
+<span class="doccomment">/// The struct representing a process. There&#39;s one for every process.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// It contains many information about the process :</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// - Its type (regular userspace process, or kworker)</span>
+<span class="doccomment">/// - Its state (Running, Scheduled, Stopped)</span>
+<span class="doccomment">/// - Its memory pages</span>
+<span class="doccomment">/// - Its kernel stack, for syscalls and interrupts</span>
+<span class="doccomment">/// - Its hardware context, to be restored on rescheduling</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ProcessStruct</span> {
+    <span class="doccomment">/// The unique id of this process.</span>
+    <span class="kw">pub</span> <span class="ident">pid</span>:                  <span class="ident">usize</span>,
+    <span class="doccomment">/// A name for this process.</span>
+    <span class="kw">pub</span> <span class="ident">name</span>:                 <span class="ident">String</span>,
+    <span class="doccomment">/// The memory view of this process. Shared among the threads.</span>
+    <span class="kw">pub</span> <span class="ident">pmemory</span>:              <span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">ProcessMemory</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The handles of this process. Shared among the threads.</span>
+    <span class="kw">pub</span> <span class="ident">phandles</span>:             <span class="ident">SpinLockIRQ</span><span class="op">&lt;</span><span class="ident">HandleTable</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// The threads of this process.</span>
+    <span class="doccomment">/// A ProcessStruct with no thread left will eventually be dropped.</span>
+    <span class="comment">// todo choose a better lock</span>
+    <span class="kw">pub</span> <span class="ident">threads</span>:              <span class="ident">SpinLockIRQ</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">ThreadStruct</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Marks when the process is dying.</span>
+    <span class="kw">pub</span> <span class="ident">killed</span>:               <span class="ident">AtomicBool</span>,
+
+    <span class="doccomment">/// A vector of readable IO ports.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When task switching, the IOPB will be changed to take this into account.</span>
+    <span class="comment">// TODO: IOPorts in ProcessStruct is i386 specific.</span>
+    <span class="comment">// BODY: We currently store the ioport a process is allowed to access</span>
+    <span class="comment">// BODY: directly in its process struct. This sucks: it&#39;s an i386-specific</span>
+    <span class="comment">// BODY: construct, but I&#39;m not quite sure where to put it.</span>
+    <span class="comment">// BODY:</span>
+    <span class="comment">// BODY: Maybe we should have a ArchProcess field containing various</span>
+    <span class="comment">// BODY: arch-specific fields?</span>
+    <span class="kw">pub</span> <span class="ident">ioports</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span>,
+
+    <span class="doccomment">/// An array of the created but not yet started threads.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When we create a thread, we return a handle to userspace containing a weak reference to the thread,</span>
+    <span class="doccomment">/// which has not been added to the schedule queue yet.</span>
+    <span class="doccomment">/// To prevent it from being dropped, we must keep at least 1 strong reference somewhere.</span>
+    <span class="doccomment">/// This is the job of the maternity. It holds references to threads that no one has for now.</span>
+    <span class="doccomment">/// When a thread is started, its only strong reference is removed from the maternity, and put</span>
+    <span class="doccomment">/// in the scheduler, which is now in charge of keeping it alive (or not).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note that we store in the process struct a strong reference to a thread, which itself</span>
+    <span class="doccomment">/// has a strong reference to the same process struct. This creates a cycle, and we loose</span>
+    <span class="doccomment">/// the behaviour of &quot;a process is dropped when its last *living* thread is dropped&quot;.</span>
+    <span class="doccomment">/// The non-started threads will keep the process struct alive. This makes it possible to</span>
+    <span class="doccomment">/// pass a non-started thread handle to another process, and let it start it for us, even after</span>
+    <span class="doccomment">/// our last living thread has died.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// However, because of this, if a thread creates other threads, does not share the handles,</span>
+    <span class="doccomment">/// and dies before starting them, the process struct will be kept alive indefinitely</span>
+    <span class="doccomment">/// by those non-started threads that no one can start, and the process will stay that way</span>
+    <span class="doccomment">/// until it is explicitly killed from outside.</span>
+    <span class="comment">// TODO: Use a better lock around thread_maternity.</span>
+    <span class="comment">// BODY: Thread maternity currently uses a SpinLock. We should ideally use a</span>
+    <span class="comment">// BODY: scheduling mutex there.</span>
+    <span class="ident">thread_maternity</span>: <span class="ident">SpinLock</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ThreadStruct</span><span class="op">&gt;&gt;</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">static</span> <span class="ident">NEXT_PROCESS_ID</span>: <span class="ident">AtomicUsize</span> <span class="op">=</span> <span class="ident">AtomicUsize</span>::<span class="ident">new</span>(<span class="number">0</span>);
+
+<span class="doccomment">/// The struct representing a thread. A process may own multiple threads.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ThreadStruct</span> {
+    <span class="doccomment">/// The state of this thread.</span>
+    <span class="kw">pub</span> <span class="ident">state</span>: <span class="ident">ThreadStateAtomic</span>,
+
+    <span class="doccomment">/// The kernel stack it uses for handling syscalls/irqs.</span>
+    <span class="kw">pub</span> <span class="ident">kstack</span>: <span class="ident">KernelStack</span>,
+
+    <span class="doccomment">/// The saved hardware context, for getting it running again on a process_switch.</span>
+    <span class="kw">pub</span> <span class="ident">hwcontext</span>: <span class="ident">SpinLockIRQ</span><span class="op">&lt;</span><span class="ident">ThreadHardwareContext</span><span class="op">&gt;</span>,
+
+    <span class="doccomment">/// The process that this thread belongs to.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Description</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// A process has a link to its threads, and every thread has a link back to its process.</span>
+    <span class="doccomment">/// The thread owns a strong reference to the process it belongs to, and the process in turn</span>
+    <span class="doccomment">/// has a vec of weak references to the threads it owns.</span>
+    <span class="doccomment">/// This way dropping a process is done automatically when its last thread is dropped.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The currently running process is indirectly kept alive by the `CURRENT_THREAD` global in scheduler.</span>
+    <span class="kw">pub</span> <span class="ident">process</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ProcessStruct</span><span class="op">&gt;</span>,
+
+    <span class="doccomment">/// Interrupt disable counter.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Description</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Allows recursively disabling interrupts while keeping a sane behavior.</span>
+    <span class="doccomment">/// Should only be manipulated through sync::enable_interrupts and</span>
+    <span class="doccomment">/// sync::disable_interrupts.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Used by the SpinLockIRQ to implement recursive irqsave logic.</span>
+    <span class="kw">pub</span> <span class="ident">int_disable_counter</span>: <span class="ident">AtomicUsize</span>,
+}
+
+<span class="doccomment">/// A handle to a userspace-accessible resource.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Description</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// When the userspace manipulates a kernel construct, it does so by operating</span>
+<span class="doccomment">/// on Handles, which are analogious to File Descriptor in a Unix System. A</span>
+<span class="doccomment">/// Handle represents all kinds of kernel structures, from IPC objects to</span>
+<span class="doccomment">/// Threads and IRQ events.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// A Handle may be shared across multiple processes, usually by passing it via</span>
+<span class="doccomment">/// IPC. This can be used, for instance, to share a handle to a memory region,</span>
+<span class="doccomment">/// allowing for the mapping of Shared Memory.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Most handles can be waited on via [::interrupts::syscalls::wait_synchronization], which</span>
+<span class="doccomment">/// will have relevant behavior for all the different kind of handles.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Handle</span> {
+    <span class="doccomment">/// An event on which we can wait. Could be an IRQ, or a user-generated</span>
+    <span class="doccomment">/// event.</span>
+    <span class="ident">ReadableEvent</span>(<span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Waitable</span><span class="op">&gt;</span>),
+    <span class="doccomment">/// The server side of an IPC port. See [::ipc::port] for more information.</span>
+    <span class="ident">ServerPort</span>(<span class="ident">ServerPort</span>),
+    <span class="doccomment">/// The client side of an IPC port. See [::ipc::port] for more information.</span>
+    <span class="ident">ClientPort</span>(<span class="ident">ClientPort</span>),
+    <span class="doccomment">/// The server side of an IPC session. See [::ipc::session] for more</span>
+    <span class="doccomment">/// information.</span>
+    <span class="ident">ServerSession</span>(<span class="ident">ServerSession</span>),
+    <span class="doccomment">/// The client side of an IPC session. See [::ipc::session] for more</span>
+    <span class="doccomment">/// information.</span>
+    <span class="ident">ClientSession</span>(<span class="ident">ClientSession</span>),
+    <span class="doccomment">/// A thread.</span>
+    <span class="ident">Thread</span>(<span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">ThreadStruct</span><span class="op">&gt;</span>),
+    <span class="doccomment">/// A shared memory region. The handle holds on to the underlying physical</span>
+    <span class="doccomment">/// memory, which means the memory will only get freed once all handles to</span>
+    <span class="doccomment">/// it are dropped.</span>
+    <span class="ident">SharedMemory</span>(<span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PhysicalMemRegion</span><span class="op">&gt;&gt;</span>),
+}
+
+<span class="kw">impl</span> <span class="ident">Handle</span> {
+    <span class="doccomment">/// Gets the handle as a [Waitable], or return a `UserspaceError` if the handle cannot be waited on.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_waitable</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Waitable</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ReadableEvent</span>(<span class="kw-2">ref</span> <span class="ident">waitable</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">waitable</span>),
+            <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ServerPort</span>(<span class="kw-2">ref</span> <span class="ident">serverport</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">serverport</span>),
+            <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ServerSession</span>(<span class="kw-2">ref</span> <span class="ident">serversession</span>) <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">serversession</span>),
+            <span class="kw">_</span> <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>),
+        }
+    }
+
+    <span class="doccomment">/// Casts the handle as a [ClientPort], or returns a `UserspaceError`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_client_port</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ClientPort</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ClientPort</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span> <span class="self">self</span> {
+            <span class="prelude-val">Ok</span>((<span class="kw-2">*</span><span class="ident">s</span>).<span class="ident">clone</span>())
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+        }
+    }
+
+    <span class="doccomment">/// Casts the handle as a [ServerSession], or returns a `UserspaceError`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_server_session</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServerSession</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ServerSession</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span> <span class="self">self</span> {
+            <span class="prelude-val">Ok</span>((<span class="kw-2">*</span><span class="ident">s</span>).<span class="ident">clone</span>())
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+        }
+    }
+
+    <span class="doccomment">/// Casts the handle as a [ClientSession], or returns a `UserspaceError`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_client_session</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ClientSession</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">ClientSession</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span> <span class="self">self</span> {
+            <span class="prelude-val">Ok</span>((<span class="kw-2">*</span><span class="ident">s</span>).<span class="ident">clone</span>())
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+        }
+    }
+
+    <span class="doccomment">/// Casts the handle as a Weak&lt;[ThreadStruct]&gt;, or returns a `UserspaceError`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_thread_handle</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Weak</span><span class="op">&lt;</span><span class="ident">ThreadStruct</span><span class="op">&gt;</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">Thread</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span> <span class="self">self</span> {
+            <span class="prelude-val">Ok</span>((<span class="kw-2">*</span><span class="ident">s</span>).<span class="ident">clone</span>())
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+        }
+    }
+
+    <span class="doccomment">/// Casts the handle as an Arc&lt;Vec&lt;[PhysicalMemRegion]&gt;, or returns a</span>
+    <span class="doccomment">/// `UserspaceError`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_shared_memory</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PhysicalMemRegion</span><span class="op">&gt;&gt;</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="kw">let</span> <span class="kw-2">&amp;</span><span class="ident">Handle</span>::<span class="ident">SharedMemory</span>(<span class="kw-2">ref</span> <span class="ident">s</span>) <span class="op">=</span> <span class="self">self</span> {
+            <span class="prelude-val">Ok</span>((<span class="kw-2">*</span><span class="ident">s</span>).<span class="ident">clone</span>())
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+        }
+    }
+}
+
+<span class="doccomment">/// Holds the table associating userspace handle numbers to a kernel [Handle].</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Each process holds a table associating a number to a kernel Handle. This</span>
+<span class="doccomment">/// number is unique to that process, handles are not shared between processes.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Handle numbers hold two guarantees.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// - It will not be reused ever. If a userspace attempts to use a handle after</span>
+<span class="doccomment">///   closing it, it will be guaranteed to receive an InvalidHandle error.</span>
+<span class="doccomment">/// - It will always be above 0, and under 0xFFFF0000.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Technically, a Horizon/NX handle is composed of two parts: The top 16 bits</span>
+<span class="doccomment">/// are randomized, while the top 16 bits are an auto-incrementing counters.</span>
+<span class="doccomment">/// Because of this, it is impossible to have more than 65535 handles.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// In KFS, we do not yet have randomness, so the counter just goes from 1 and</span>
+<span class="doccomment">/// goes up.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// There exists two &quot;meta-handles&quot;: 0xFFFF8000 and 0xFFFF8001, which always</span>
+<span class="doccomment">/// point to the current process and thread, respectively. Those handles are not</span>
+<span class="doccomment">/// *actually* stored in the handle table to avoid creating a reference cycle.</span>
+<span class="doccomment">/// Instead, they are retrieved dynamically at runtime by the get_handle</span>
+<span class="doccomment">/// function.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HandleTable</span> {
+    <span class="ident">table</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Handle</span><span class="op">&gt;&gt;</span>,
+    <span class="ident">counter</span>: <span class="ident">u32</span>
+}
+
+<span class="kw">impl</span> <span class="ident">HandleTable</span> {
+    <span class="doccomment">/// Creates an empty handle table. Note that an empty handle table still</span>
+    <span class="doccomment">/// implicitly contains the meta-handles 0xFFFF8000 and 0xFFFF8001.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-&gt;</span> <span class="ident">HandleTable</span> {
+        <span class="ident">HandleTable</span> {
+            <span class="ident">table</span>: <span class="ident">BTreeMap</span>::<span class="ident">new</span>(),
+            <span class="ident">counter</span>: <span class="number">1</span>
+        }
+    }
+
+    <span class="comment">// TODO: HandleTable::add_handle should error if the table is full.</span>
+    <span class="comment">// BODY: HandleTable::add_handle currently assumes that insertion will always</span>
+    <span class="comment">// BODY: succeed. It does not implement any handle count limitations present</span>
+    <span class="comment">// BODY: in Horizon/NX. Furthermore, if the handle table is completely filled</span>
+    <span class="comment">// BODY: (e.g. there are 2^32 handles), the function will infinite loop.</span>
+    <span class="comment">// BODY: And as if that wasn&#39;t enough: it doesn&#39;t technically guarantee a</span>
+    <span class="comment">// BODY: handle will not get reused.</span>
+    <span class="doccomment">/// Add a handle to the handle table, returning the userspace handle number</span>
+    <span class="doccomment">/// associated to the given handle.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_handle</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">handle</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Handle</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">u32</span> {
+        <span class="kw">loop</span> {
+            <span class="kw">let</span> <span class="ident">handlenum</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">counter</span>;
+            <span class="self">self</span>.<span class="ident">counter</span> <span class="op">+=</span> <span class="number">1</span>;
+            <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">table</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">handlenum</span>) {
+                <span class="self">self</span>.<span class="ident">table</span>.<span class="ident">insert</span>(<span class="ident">handlenum</span>, <span class="ident">handle</span>);
+                <span class="kw">break</span> <span class="ident">handlenum</span>;
+            }
+        }
+    }
+
+    <span class="doccomment">/// Gets the Kernel Handle associated with the given userspace handle number.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_handle</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">handle</span>: <span class="ident">u32</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Handle</span><span class="op">&gt;</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">table</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">handle</span>).<span class="ident">cloned</span>().<span class="ident">ok_or</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+    }
+
+    <span class="doccomment">/// Deletes the mapping from the given userspace handle number. Returns the</span>
+    <span class="doccomment">/// underlying Kernel Handle, in case it needs to be used (e.g. for sending</span>
+    <span class="doccomment">/// to another process in an IPC move).</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">delete_handle</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">handle</span>: <span class="ident">u32</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Handle</span><span class="op">&gt;</span>, <span class="ident">UserspaceError</span><span class="op">&gt;</span> {
+        <span class="comment">// TODO: Handle 0xFFFF8000 and 0xFFFF8001 ?</span>
+        <span class="self">self</span>.<span class="ident">table</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">handle</span>).<span class="ident">ok_or</span>(<span class="ident">UserspaceError</span>::<span class="ident">InvalidHandle</span>)
+    }
+}
+
+<span class="doccomment">/// The state of a thread.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// - Running: currently on the CPU</span>
+<span class="doccomment">/// - Scheduled: scheduled to be running</span>
+<span class="doccomment">/// - Stopped: not in the scheduled queue, waiting for an event</span>
+<span class="doccomment">/// - Killed: dying, will be unscheduled and dropped at syscall boundary</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Since SMP is not supported, there is only one Running thread.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">usize</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ThreadState</span> {
+    <span class="doccomment">/// Currently on the CPU.</span>
+    <span class="ident">Running</span> <span class="op">=</span> <span class="number">0</span>,
+    <span class="doccomment">/// Scheduled to be running.</span>
+    <span class="ident">Scheduled</span> <span class="op">=</span> <span class="number">1</span>,
+    <span class="doccomment">/// Not in the scheduled queue, waiting for an event.</span>
+    <span class="ident">Stopped</span> <span class="op">=</span> <span class="number">2</span>,
+    <span class="doccomment">/// Dying, will be unscheduled and dropped at syscall boundary.</span>
+    <span class="ident">Killed</span> <span class="op">=</span> <span class="number">3</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">ThreadState</span> {
+    <span class="kw">fn</span> <span class="ident">from_primitive</span>(<span class="ident">v</span>: <span class="ident">usize</span>) <span class="op">-&gt;</span> <span class="ident">ThreadState</span> {
+        <span class="kw">match</span> <span class="ident">v</span> {
+            <span class="number">0</span> <span class="op">=&gt;</span> <span class="ident">ThreadState</span>::<span class="ident">Running</span>,
+            <span class="number">1</span> <span class="op">=&gt;</span> <span class="ident">ThreadState</span>::<span class="ident">Scheduled</span>,
+            <span class="number">2</span> <span class="op">=&gt;</span> <span class="ident">ThreadState</span>::<span class="ident">Stopped</span>,
+            <span class="number">3</span> <span class="op">=&gt;</span> <span class="ident">ThreadState</span>::<span class="ident">Killed</span>,
+            <span class="kw">_</span> <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Invalid thread state&quot;</span>),
+        }
+    }
+}
+
+<span class="comment">// TODO: Create/use a library to create Atomic Enum.</span>
+<span class="comment">// BODY: We have at least one (probably more) atomic enums that we rolled by hand</span>
+<span class="comment">// BODY: in the kernel. The one I know about: ThreadStateAtomic. Really, this</span>
+<span class="comment">// BODY: should ideally be done automatically by a crate, either a macro or a</span>
+<span class="comment">// BODY: custom derive. This would allow us to auto-generate the documentation.</span>
+<span class="doccomment">/// Stores a ThreadState atomically.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ThreadStateAtomic</span>(<span class="ident">AtomicUsize</span>);
+
+<span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ThreadStateAtomic</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span>) <span class="op">-&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
+        <span class="ident">Debug</span>::<span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>), <span class="ident">f</span>)
+    }
+}
+
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">missing_docs</span>)]</span>
+<span class="kw">impl</span> <span class="ident">ThreadStateAtomic</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">state</span>: <span class="ident">ThreadState</span>) <span class="op">-&gt;</span> <span class="ident">ThreadStateAtomic</span> {
+        <span class="ident">ThreadStateAtomic</span>(<span class="ident">AtomicUsize</span>::<span class="ident">new</span>(<span class="ident">state</span> <span class="kw">as</span> <span class="ident">usize</span>))
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_inner</span>(<span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">ThreadState</span> {
+        <span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">into_inner</span>())
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">load</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">order</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="ident">ThreadState</span> {
+        <span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">load</span>(<span class="ident">order</span>))
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">store</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">val</span>: <span class="ident">ThreadState</span>, <span class="ident">order</span>: <span class="ident">Ordering</span>) {
+        <span class="self">self</span>.<span class="number">0</span>.<span class="ident">store</span>(<span class="ident">val</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">order</span>)
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">swap</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">val</span>: <span class="ident">ThreadState</span>, <span class="ident">order</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="ident">ThreadState</span> {
+        <span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">swap</span>(<span class="ident">val</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">order</span>))
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">compare_and_swap</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">current</span>: <span class="ident">ThreadState</span>, <span class="ident">new</span>: <span class="ident">ThreadState</span>, <span class="ident">order</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="ident">ThreadState</span> {
+        <span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">compare_and_swap</span>(<span class="ident">current</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">new</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">order</span>))
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">compare_exchange</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">current</span>: <span class="ident">ThreadState</span>, <span class="ident">new</span>: <span class="ident">ThreadState</span>, <span class="ident">success</span>: <span class="ident">Ordering</span>, <span class="ident">failure</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ThreadState</span>, <span class="ident">ThreadState</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="number">0</span>.<span class="ident">compare_exchange</span>(<span class="ident">current</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">new</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">success</span>, <span class="ident">failure</span>)
+            .<span class="ident">map</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+            .<span class="ident">map_err</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">compare_exchange_weak</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">current</span>: <span class="ident">ThreadState</span>, <span class="ident">new</span>: <span class="ident">ThreadState</span>, <span class="ident">success</span>: <span class="ident">Ordering</span>, <span class="ident">failure</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ThreadState</span>, <span class="ident">ThreadState</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="number">0</span>.<span class="ident">compare_exchange_weak</span>(<span class="ident">current</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">new</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="ident">success</span>, <span class="ident">failure</span>)
+            .<span class="ident">map</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+            .<span class="ident">map_err</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">fetch_update</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">f</span>: <span class="ident">F</span>, <span class="ident">fetch_order</span>: <span class="ident">Ordering</span>, <span class="ident">set_order</span>: <span class="ident">Ordering</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ThreadState</span>, <span class="ident">ThreadState</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">F</span>: <span class="ident">FnMut</span>(<span class="ident">ThreadState</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ThreadState</span><span class="op">&gt;</span>
+    {
+        <span class="self">self</span>.<span class="number">0</span>.<span class="ident">fetch_update</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="ident">f</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>(<span class="ident">v</span>)).<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="ident">v</span> <span class="kw">as</span> <span class="ident">usize</span>),
+                            <span class="ident">fetch_order</span>, <span class="ident">set_order</span>)
+            .<span class="ident">map</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+            .<span class="ident">map_err</span>(<span class="ident">ThreadState</span>::<span class="ident">from_primitive</span>)
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">ProcessStruct</span> {
+    <span class="doccomment">/// Creates a new process.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The created process will have no threads.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics if max PID has been reached, which it shouldn&#39;t have since we&#39;re the first process.</span>
+    <span class="comment">// todo: return an error instead of panicking</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">name</span>: <span class="ident">String</span>, <span class="ident">ioports</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ProcessStruct</span><span class="op">&gt;</span> {
+
+        <span class="comment">// allocate its memory space</span>
+        <span class="kw">let</span> <span class="ident">pmemory</span> <span class="op">=</span> <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">ProcessMemory</span>::<span class="ident">new</span>());
+
+        <span class="comment">// The PID.</span>
+        <span class="kw">let</span> <span class="ident">pid</span> <span class="op">=</span> <span class="ident">NEXT_PROCESS_ID</span>.<span class="ident">fetch_add</span>(<span class="number">1</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
+        <span class="kw">if</span> <span class="ident">pid</span> <span class="op">==</span> <span class="ident">usize</span>::<span class="ident">max_value</span>() {
+            <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Max PID reached!&quot;</span>);
+            <span class="comment">// todo: return an error instead of panicking</span>
+        }
+
+        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(
+            <span class="ident">ProcessStruct</span> {
+                <span class="ident">pid</span>,
+                <span class="ident">name</span>,
+                <span class="ident">pmemory</span>,
+                <span class="ident">threads</span>: <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
+                <span class="ident">phandles</span>: <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">HandleTable</span>::<span class="ident">new</span>()),
+                <span class="ident">killed</span>: <span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>),
+                <span class="ident">thread_maternity</span>: <span class="ident">SpinLock</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
+                <span class="ident">ioports</span>,
+            }
+        );
+
+        <span class="ident">p</span>
+    }
+
+    <span class="doccomment">/// Creates the very first process at boot.</span>
+    <span class="doccomment">/// Called internally by create_first_thread.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The created process will have no threads.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Safety</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Use only for creating the very first process. Should never be used again after that.</span>
+    <span class="doccomment">/// Must be using a valid KernelStack, a valid ActivePageTables.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics if max PID has been reached, which it shouldn&#39;t have since we&#39;re the first process.</span>
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">create_first_process</span>() <span class="op">-&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ProcessStruct</span><span class="op">&gt;</span> {
+
+        <span class="comment">// the already currently active pages</span>
+        <span class="kw">let</span> <span class="ident">pmemory</span> <span class="op">=</span> <span class="ident">Mutex</span>::<span class="ident">new</span>(<span class="ident">ProcessMemory</span>::<span class="ident">from_active_page_tables</span>());
+
+        <span class="kw">let</span> <span class="ident">pid</span> <span class="op">=</span> <span class="ident">NEXT_PROCESS_ID</span>.<span class="ident">fetch_add</span>(<span class="number">1</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
+        <span class="kw">if</span> <span class="ident">pid</span> <span class="op">==</span> <span class="ident">usize</span>::<span class="ident">max_value</span>() {
+            <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Max PID reached!&quot;</span>);
+        }
+
+        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(
+            <span class="ident">ProcessStruct</span> {
+                <span class="ident">pid</span>,
+                <span class="ident">name</span>: <span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;init&quot;</span>),
+                <span class="ident">pmemory</span>,
+                <span class="ident">threads</span>: <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
+                <span class="ident">phandles</span>: <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">HandleTable</span>::<span class="ident">new</span>()),
+                <span class="ident">killed</span>: <span class="ident">AtomicBool</span>::<span class="ident">new</span>(<span class="bool-val">false</span>),
+                <span class="ident">thread_maternity</span>: <span class="ident">SpinLock</span>::<span class="ident">new</span>(<span class="ident">Vec</span>::<span class="ident">new</span>()),
+                <span class="ident">ioports</span>: <span class="ident">Vec</span>::<span class="ident">new</span>(),
+            }
+        );
+
+        <span class="ident">p</span>
+    }
+
+    <span class="doccomment">/// Kills a process by killing all of its threads.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When a thread is about to return to userspace, it checks if its state is Killed.</span>
+    <span class="doccomment">/// In this case it unschedules itself instead, and its ThreadStruct is dropped.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// When our last thread is dropped, our process struct is dropped with it.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// We also mark the process struct as killed to prevent race condition with</span>
+    <span class="doccomment">/// another thread that would want to spawn a thread after we killed all ours.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">kill_process</span>(<span class="ident">this</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) {
+        <span class="comment">// mark the process as killed</span>
+        <span class="ident">this</span>.<span class="ident">killed</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
+
+        <span class="comment">// kill our baby threads. Those threads have never run, we don&#39;t even bother</span>
+        <span class="comment">// scheduling them so the can free their resources, just drop the hole maternity.</span>
+        <span class="ident">this</span>.<span class="ident">thread_maternity</span>.<span class="ident">lock</span>().<span class="ident">clear</span>();
+
+        <span class="comment">// kill all other regular threads</span>
+        <span class="kw">for</span> <span class="ident">weak_thread</span> <span class="kw">in</span> <span class="ident">this</span>.<span class="ident">threads</span>.<span class="ident">lock</span>().<span class="ident">iter</span>() {
+            <span class="ident">Weak</span>::<span class="ident">upgrade</span>(<span class="ident">weak_thread</span>)
+                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">t</span><span class="op">|</span> <span class="ident">ThreadStruct</span>::<span class="ident">kill</span>(<span class="ident">t</span>));
+        }
+    }
+
+}
+
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ProcessStruct</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// todo this should be a debug !</span>
+        <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;Dropped a process : {:?}&quot;</span>, <span class="self">self</span>)
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">ThreadStruct</span> {
+    <span class="doccomment">/// Creates a new thread.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Sets the entrypoint and userspace stack pointer.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Adds itself to list of threads of the belonging process.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The returned thread will be in `Stopped` state.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// The thread&#39;s only strong reference is stored in the process&#39; maternity,</span>
+    <span class="doccomment">/// and we return only a weak to it, that can directly be put in a thread_handle.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">belonging_process</span>: <span class="kw-2">&amp;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ProcessStruct</span><span class="op">&gt;</span>, <span class="ident">ep</span>: <span class="ident">VirtualAddress</span>, <span class="ident">stack</span>: <span class="ident">VirtualAddress</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Weak</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>, <span class="ident">KernelError</span><span class="op">&gt;</span> {
+
+        <span class="comment">// allocate its kernel stack</span>
+        <span class="kw">let</span> <span class="ident">kstack</span> <span class="op">=</span> <span class="ident">KernelStack</span>::<span class="ident">allocate_stack</span>()<span class="question-mark">?</span>;
+
+        <span class="comment">// hardware context will be computed later in this function, write a dummy value for now</span>
+        <span class="kw">let</span> <span class="ident">empty_hwcontext</span> <span class="op">=</span> <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">ThreadHardwareContext</span>::<span class="ident">new</span>());
+
+        <span class="comment">// the state of the process, Stopped</span>
+        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">ThreadStateAtomic</span>::<span class="ident">new</span>(<span class="ident">ThreadState</span>::<span class="ident">Stopped</span>);
+
+        <span class="kw">let</span> <span class="ident">t</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(
+            <span class="ident">ThreadStruct</span> {
+                <span class="ident">state</span>,
+                <span class="ident">kstack</span>,
+                <span class="ident">hwcontext</span> : <span class="ident">empty_hwcontext</span>,
+                <span class="ident">int_disable_counter</span>: <span class="ident">AtomicUsize</span>::<span class="ident">new</span>(<span class="number">0</span>),
+                <span class="ident">process</span>: <span class="ident">Arc</span>::<span class="ident">clone</span>(<span class="ident">belonging_process</span>),
+            }
+        );
+
+        <span class="comment">// prepare the thread&#39;s stack for its first schedule-in</span>
+        <span class="kw">unsafe</span> {
+            <span class="comment">// Safety: We just created the ThreadStruct, and own the only reference</span>
+            <span class="comment">// to it, so we *know* it never has been scheduled, and cannot be.</span>
+            <span class="ident">prepare_for_first_schedule</span>(<span class="kw-2">&amp;</span><span class="ident">t</span>, <span class="ident">ep</span>.<span class="ident">addr</span>(), <span class="ident">stack</span>.<span class="ident">addr</span>());
+        }
+
+        <span class="comment">// make a weak copy that we will return</span>
+        <span class="kw">let</span> <span class="ident">ret</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="ident">t</span>);
+
+        <span class="comment">// add it to the process&#39; list of threads, and to the maternity, simultaneously</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">maternity</span> <span class="op">=</span> <span class="ident">belonging_process</span>.<span class="ident">thread_maternity</span>.<span class="ident">lock</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">threads_vec</span> <span class="op">=</span> <span class="ident">belonging_process</span>.<span class="ident">threads</span>.<span class="ident">lock</span>();
+        <span class="kw">if</span> <span class="ident">belonging_process</span>.<span class="ident">killed</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>) {
+            <span class="comment">// process was killed while we were waiting for the lock.</span>
+            <span class="comment">// do not add the process to the vec, cancel the thread creation.</span>
+            <span class="ident">drop</span>(<span class="ident">t</span>);
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KernelError</span>::<span class="ident">ProcessKilled</span> { <span class="ident">backtrace</span>: <span class="ident">Backtrace</span>::<span class="ident">new</span>() })
+        }
+        <span class="comment">// push a weak in the threads_vec</span>
+        <span class="ident">threads_vec</span>.<span class="ident">push</span>(<span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="ident">t</span>));
+        <span class="comment">// and put the only strong in the maternity</span>
+        <span class="ident">maternity</span>.<span class="ident">push</span>(<span class="ident">t</span>);
+
+        <span class="prelude-val">Ok</span>(<span class="ident">ret</span>)
+    }
+
+    <span class="doccomment">/// Creates the very first process and thread at boot.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// 1: Creates a process struct that uses current page tables.</span>
+    <span class="doccomment">/// 2: Creates a thread struct that uses the current KernelStack as its stack,</span>
+    <span class="doccomment">///    and points to the created process.</span>
+    <span class="doccomment">/// 3: Adds itself to the created process.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Thread will be in state Running.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns the created thread.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Safety</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Use only for creating the very first process. Should never be used again after that.</span>
+    <span class="doccomment">/// Must be using a valid KernelStack, a valid ActivePageTables.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Does not check that the process struct is not marked killed.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics if max PID has been reached, which it shouldn&#39;t have since we&#39;re the first process.</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">create_first_thread</span>() <span class="op">-&gt;</span> <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">ThreadStruct</span><span class="op">&gt;</span> {
+
+        <span class="comment">// first create the process we will belong to</span>
+        <span class="kw">let</span> <span class="ident">process</span> <span class="op">=</span> <span class="ident">ProcessStruct</span>::<span class="ident">create_first_process</span>();
+
+        <span class="comment">// the state of the process, currently running</span>
+        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">ThreadStateAtomic</span>::<span class="ident">new</span>(<span class="ident">ThreadState</span>::<span class="ident">Running</span>);
+
+        <span class="comment">// use the already allocated stack</span>
+        <span class="kw">let</span> <span class="ident">kstack</span> <span class="op">=</span> <span class="ident">KernelStack</span>::<span class="ident">get_current_stack</span>();
+
+        <span class="comment">// the saved esp will be overwritten on schedule-out anyway</span>
+        <span class="kw">let</span> <span class="ident">hwcontext</span> <span class="op">=</span> <span class="ident">SpinLockIRQ</span>::<span class="ident">new</span>(<span class="ident">ThreadHardwareContext</span>::<span class="ident">new</span>());
+
+        <span class="kw">let</span> <span class="ident">t</span> <span class="op">=</span> <span class="ident">Arc</span>::<span class="ident">new</span>(
+            <span class="ident">ThreadStruct</span> {
+                <span class="ident">state</span>,
+                <span class="ident">kstack</span>,
+                <span class="ident">hwcontext</span>,
+                <span class="ident">int_disable_counter</span>: <span class="ident">AtomicUsize</span>::<span class="ident">new</span>(<span class="number">0</span>),
+                <span class="ident">process</span>: <span class="ident">Arc</span>::<span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="ident">process</span>),
+            }
+        );
+
+        <span class="comment">// first process now has one thread</span>
+        <span class="ident">process</span>.<span class="ident">threads</span>.<span class="ident">lock</span>().<span class="ident">push</span>(<span class="ident">Arc</span>::<span class="ident">downgrade</span>(<span class="kw-2">&amp;</span><span class="ident">t</span>));
+
+        <span class="ident">t</span>
+    }
+
+    <span class="doccomment">/// Takes a reference to a thread, removes it from the maternity, and adds it to the schedule queue.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// We take only a weak reference, to permit calling this function easily with a thread_handle.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Errors</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `ThreadAlreadyStarted` if the weak resolution failed (the thread has already been killed).</span>
+    <span class="doccomment">/// * `ThreadAlreadyStarted` if the thread was not found in the maternity.</span>
+    <span class="doccomment">/// * `ProcessKilled` if the process struct was tagged `killed` before we had time to start it.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">start</span>(<span class="ident">this</span>: <span class="ident">Weak</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">KernelError</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">thread</span> <span class="op">=</span> <span class="ident">this</span>.<span class="ident">upgrade</span>().<span class="ident">ok_or</span>(
+            <span class="comment">// the thread was dropped, meaning it has already been killed.</span>
+            <span class="ident">KernelError</span>::<span class="ident">ThreadAlreadyStarted</span> { <span class="ident">backtrace</span>: <span class="ident">Backtrace</span>::<span class="ident">new</span>() }
+        )<span class="question-mark">?</span>;
+        <span class="comment">// remove it from the maternity</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">maternity</span> <span class="op">=</span> <span class="ident">thread</span>.<span class="ident">process</span>.<span class="ident">thread_maternity</span>.<span class="ident">lock</span>();
+        <span class="kw">if</span> <span class="ident">thread</span>.<span class="ident">process</span>.<span class="ident">killed</span>.<span class="ident">load</span>(<span class="ident">Ordering</span>::<span class="ident">SeqCst</span>) {
+            <span class="comment">// process was killed while we were waiting for the lock.</span>
+            <span class="comment">// do not start process to the vec, cancel the thread start.</span>
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KernelError</span>::<span class="ident">ProcessKilled</span> { <span class="ident">backtrace</span>: <span class="ident">Backtrace</span>::<span class="ident">new</span>() })
+        }
+        <span class="kw">let</span> <span class="ident">cradle</span> <span class="op">=</span> <span class="ident">maternity</span>.<span class="ident">iter</span>().<span class="ident">position</span>(<span class="op">|</span><span class="ident">baby</span><span class="op">|</span> <span class="ident">Arc</span>::<span class="ident">ptr_eq</span>(<span class="ident">baby</span>, <span class="kw-2">&amp;</span><span class="ident">thread</span>));
+        <span class="kw">match</span> <span class="ident">cradle</span> {
+            <span class="prelude-val">None</span> <span class="op">=&gt;</span> {
+                <span class="comment">// the thread was not found in the maternity, meaning it had already started.</span>
+                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">KernelError</span>::<span class="ident">ThreadAlreadyStarted</span> { <span class="ident">backtrace</span>: <span class="ident">Backtrace</span>::<span class="ident">new</span>() })
+            },
+            <span class="prelude-val">Some</span>(<span class="ident">pos</span>) <span class="op">=&gt;</span> {
+                <span class="comment">// remove it from maternity, and put it in the schedule queue</span>
+                <span class="ident">scheduler</span>::<span class="ident">add_to_schedule_queue</span>(<span class="ident">maternity</span>.<span class="ident">remove</span>(<span class="ident">pos</span>));
+                <span class="prelude-val">Ok</span>(())
+            }
+        }
+    }
+
+    <span class="doccomment">/// Sets the thread to the `Killed` state.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// We reschedule the thread (cancelling any waiting it was doing).</span>
+    <span class="doccomment">/// In this state, the thread will die when attempting to return to userspace.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If the thread was already in the `Killed` state, this function is a no-op.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">kill</span>(<span class="ident">this</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">old_state</span> <span class="op">=</span> <span class="ident">this</span>.<span class="ident">state</span>.<span class="ident">swap</span>(<span class="ident">ThreadState</span>::<span class="ident">Killed</span>, <span class="ident">Ordering</span>::<span class="ident">SeqCst</span>);
+        <span class="kw">if</span> <span class="ident">old_state</span> <span class="op">==</span> <span class="ident">ThreadState</span>::<span class="ident">Killed</span> {
+            <span class="comment">// if the thread was already marked killed, don&#39;t do anything.</span>
+            <span class="kw">return</span>;
+        }
+        <span class="ident">scheduler</span>::<span class="ident">add_to_schedule_queue</span>(<span class="ident">this</span>);
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ThreadStruct</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// todo this should be a debug !</span>
+        <span class="macro">info</span><span class="macro">!</span>(<span class="string">&quot;Dropped a thread : {:?}&quot;</span>, <span class="self">self</span>)
+    }
+}
+
+</pre></div>
+</section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "kfs_kernel";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>

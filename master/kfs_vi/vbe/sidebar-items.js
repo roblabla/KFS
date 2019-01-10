@@ -1,0 +1,1 @@
+initSidebarItems({"static":[["FRAMEBUFFER",""]],"struct":[["FRAMEBUFFER",""],["Framebuffer",""],["VBEColor","A rgb color"]]});

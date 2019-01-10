@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["IUserInterface","Main interface of the service manager. Allows registering and retrieving handles to all the services."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CrossProcessMapping","A struct representing a UserLand mapping temporarily mirrored in KernelSpace."]]});

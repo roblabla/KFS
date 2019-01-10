@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["add_or_error","adds to usize, and returns an KernelError if it would cause an overflow."],["check_aligned","checks that a certain value meets the given alignment."],["check_nonzero_length","checks that a length is not 0."],["sub_or_error","subtracts to usize, and returns an KernelError if it would cause an overflow."]]});

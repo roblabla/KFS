@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["IBuffer","A handle to a window. Created through the create_buffer function on ViInterface. If dropped, the window will be closed."],["ViInterface","Main compositor interface."]]});
