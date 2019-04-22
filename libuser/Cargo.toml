@@ -17,6 +17,7 @@ log = "0.4"
 lazy_static = "1.3"
 futures-preview = { version = "=0.3.0-alpha.16", default-features = false, features = ["nightly", "alloc"] }
 generational-arena = { version = "0.2", default-features = false }
+getset = { git = "https://github.com/razican/getset", branch = "deref" }
 
 [dependencies.byteorder]
 default-features = false

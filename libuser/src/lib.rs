@@ -70,8 +70,8 @@ pub mod terminal;
 pub mod ps2;
 pub mod window;
 pub mod zero_box;
+pub mod pci;
 
-#[cfg(all(target_os = "sunrise", not(feature = "build-for-std-app")))]
 mod crt0;
 mod log_impl;
 pub use sunrise_libutils::loop_future;

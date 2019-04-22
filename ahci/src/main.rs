@@ -55,7 +55,6 @@
 #![deny(clippy::missing_docs_in_private_items)]
 #![deny(intra_doc_link_resolution_failure)]
 
-#[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate sunrise_libuser;
@@ -64,7 +63,6 @@ extern crate log;
 #[macro_use]
 extern crate bitfield;
 
-mod pci;
 mod hba;
 mod fis;
 mod disk;
@@ -81,6 +79,8 @@ use spin::Mutex;
 use sunrise_libuser::syscalls;
 use sunrise_libuser::ahci::{AhciInterface as IAhciInterface, IDiskProxy, IDisk as _};
 use sunrise_libuser::futures_rs::future::FutureObj;
+use sunrise_libuser::pci;
+use sunrise_libuser::pci::{PciHeader, BAR};
 
 /// Array of discovered disk.
 ///
@@ -102,7 +102,20 @@ static DISKS: Mutex<Vec<Arc<Mutex<Disk>>>> = Mutex::new(Vec::new());
 /// 3. Start the event loop.
 fn main() {
     debug!("AHCI driver starting up");
-    let ahci_controllers = pci::get_ahci_controllers();
+    let ahci_controllers = pci::discover()
+        .filter(|device| device.class() == 0x01 && device.subclass() == 0x06 && device.prog_if() == 0x01)
+        .map(|device| {
+            match device.header() {
+                PciHeader::GeneralDevice(header00) => {
+                    match header00.bar(5) {
+                        Some(BAR::Memory(addr, size)) => (*addr, *size),
+                        _ => panic!("PCI device with unexpected BAR 5")
+                    }
+                },
+                _ => panic!("PCI device with unexpected header")
+            }
+        });
+
     debug!("AHCI controllers : {:#x?}", ahci_controllers);
     for (bar5, _) in ahci_controllers {
         DISKS.lock().extend(
