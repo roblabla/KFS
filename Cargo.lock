@@ -499,13 +499,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sunrise-clock"
-version = "0.1.0"
-dependencies = [
- "sunrise-libuser 0.1.0",
-]
-
-[[package]]
 name = "sunrise-kernel"
 version = "0.1.0"
 dependencies = [
@@ -600,6 +593,13 @@ dependencies = [
  "spin 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sunrise-libuser 0.1.0",
  "sunrise-libutils 0.1.0",
+]
+
+[[package]]
+name = "sunrise-wall-clock"
+version = "0.1.0"
+dependencies = [
+ "sunrise-libuser 0.1.0",
 ]
 
 [[package]]
