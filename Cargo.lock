@@ -628,6 +628,7 @@ name = "sunrise-time"
 version = "0.1.0"
 dependencies = [
  "generic-array 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sunrise-libtimezone 0.1.0",
  "sunrise-libuser 0.1.0",
@@ -650,6 +651,7 @@ name = "sunrise-wall-clock"
 version = "0.1.0"
 dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sunrise-libuser 0.1.0",
 ]
 
