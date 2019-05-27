@@ -532,6 +532,26 @@ where
             .and_then(|buf| InBuffer::<T>::new(buf))
     }
 
+    /// Retreive the next OutBuffer (type-B buffer) in the message.
+    ///
+    /// # Errors
+    ///
+    /// Returns an InvalidIpcBufferCount if not enough buffers are present
+    ///
+    /// Returns an InvalidIpcBuffer if the next buffer was not of the appropriate
+    /// size.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe as it allows creating references to arbitrary
+    /// memory, and of arbitrary type.
+    pub unsafe fn pop_out_buffer<T>(&mut self) -> Result<OutBuffer<'_, T>, Error> {
+        self.buffers.iter().position(|buf| buf.buftype().is_type_b())
+            .and_then(|pos| self.buffers.pop_at(pos))
+            .ok_or_else(|| LibuserError::InvalidIpcBufferCount.into())
+            .and_then(|buf| OutBuffer::<T>::new(buf))
+    }
+
     /// Push an OutBuffer (type-A buffer) backed by the specified data.
     pub fn push_out_buffer<T: SizedIPCBuffer + ?Sized>(&mut self, data: &'a T) -> &mut Self {
         self.buffers.push(IPCBuffer::out_buffer(data, 0));

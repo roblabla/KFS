@@ -226,3 +226,15 @@ pub fn bit_array_first_count_one(bitarray: &[u8], count: usize) -> Option<usize>
     None
 }
 
+#[macro_export]
+macro_rules! initialize_to_zero {
+    ($ty:ty) => {{
+        #[doc(hidden)]
+        union ZeroedTypeUnion {
+            data: $ty,
+            arr: [u8; core::mem::size_of::<$ty>()]
+        }
+
+        ZeroedTypeUnion { arr: [0; core::mem::size_of::<$ty>()] }.data
+    }}
+}

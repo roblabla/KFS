@@ -202,6 +202,7 @@ fn get_type(output: bool, ty: &Alias) -> Result<String, Error> {
 
         // Unsized bytes
         Alias::Bytes(0) => Ok("[u8]".to_string()),
+        //Alias::Bytes(len) => Ok(format!("generic_array::GenericArray<u8, generic_array::typenum::consts::U{}]", len)),
         Alias::Bytes(len) => Ok(format!("[u8; {}]", len)),
 
         // Deprecated in newer version of SwIPC anyways.
@@ -376,7 +377,7 @@ fn format_type(struct_name: &str, ty: &TypeDef) -> Result<String, Error> {
     match &ty.ty {
         Type::Struct(struc) => {
             writeln!(s, "#[repr(C)]").unwrap();
-            writeln!(s, "#[derive(Clone, Copy)]").unwrap();
+            writeln!(s, "#[derive(Clone, Copy, Debug)]").unwrap();
             writeln!(s, "pub struct {} {{", struct_name).unwrap();
             for (doc, name, ty) in &struc.fields {
                 // TODO: Support nested type
@@ -387,13 +388,13 @@ fn format_type(struct_name: &str, ty: &TypeDef) -> Result<String, Error> {
                     Type::Alias(alias) => get_type(false, alias)?,
                     _ => unimplemented!()
                 };
-                writeln!(s, "    {}: {},", name, tyname).unwrap();
+                writeln!(s, "    pub {}: {},", name, tyname).unwrap();
             }
             writeln!(s, "}}").unwrap();
         },
         Type::Enum(enu) => {
             writeln!(s, "#[repr(u32)]").unwrap(); // TODO: Deduce from template
-            writeln!(s, "#[derive(Clone, Copy)]").unwrap();
+            writeln!(s, "#[derive(Clone, Copy, Debug)]").unwrap();
             writeln!(s, "pub enum {} {{", struct_name).unwrap();
             for (doc, name, num) in &enu.fields {
                 for line in doc.lines() {
