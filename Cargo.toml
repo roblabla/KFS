@@ -1,6 +1,6 @@
 [workspace]
 members = ["kernel", "bootstrap", "shell", "time", "libuser", "wall-clock",
-    "sm", "vi", "ahci", "fs", "libutils", "libkern", "swipc-gen",
+    "sm", "vi", "ahci", "virtio", "fs", "libutils", "libkern", "swipc-gen",
     "swipc-parser", "docs", "libtimezone", "disk-initializer", "loader",
     "keyboard", "std_hello_world", "twili", "coreutils", "df"]
 

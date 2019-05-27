@@ -66,6 +66,8 @@ pub enum Error {
     Hid(HidError, Backtrace),
     /// Twili Pipe errors
     Twili(TwiliError, Backtrace),
+    /// Virtio driver error.
+    Virtio(VirtioError, Backtrace),
     /// An unknown error type. Either someone returned a custom error, or this
     /// version of libuser is outdated.
     Unknown(u32, Backtrace)
@@ -88,6 +90,7 @@ impl Error {
             Module::Time => Error::Time(TimeError(description), Backtrace::new()),
             Module::Ahci => Error::Ahci(AhciError(description), Backtrace::new()),
             Module::Hid => Error::Hid(HidError(description), Backtrace::new()),
+            Module::Virtio => Error::Virtio(VirtioError(description), Backtrace::new()),
             _ => Error::Unknown(errcode, Backtrace::new())
         }
     }
@@ -108,6 +111,7 @@ impl Error {
             Error::Time(err, ..) => err.0 << 9 | Module::Time.0,
             Error::Hid(err, ..) => err.0 << 9 | Module::Hid.0,
             Error::Twili(err, ..) => err.0 << 9 | Module::Twili.0,
+            Error::Virtio(err, ..) => err.0 << 9 | Module::Virtio.0,
             Error::Unknown(err, ..) => err,
         }
     }
@@ -123,6 +127,7 @@ enum_with_val! {
         Sm = 21,
         Vi = 114,
         Time = 116,
+        Virtio = 117,
         Hid = 202,
         Libuser = 415,
         Ahci = 416,
@@ -402,5 +407,22 @@ enum_with_val! {
 impl From<TwiliError> for Error {
     fn from(error: TwiliError) -> Self {
         Error::Twili(error, Backtrace::new())
+    }
+}
+
+enum_with_val! {
+    /// Virtio errors.
+    #[derive(PartialEq, Eq, Clone, Copy)]
+    pub struct VirtioError(u32) {
+        /// A required PCI Vendor-Specific feature was missing.
+        MissingRequiredFeature = 0,
+        /// Failed to negociate features with the virtio device.
+        FeatureNegociationFailed = 1,
+    }
+}
+
+impl From<VirtioError> for Error {
+    fn from(error: VirtioError) -> Self {
+        Error::Virtio(error, Backtrace::new())
     }
 }
