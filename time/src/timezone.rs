@@ -57,7 +57,15 @@ pub static TZ_MANAGER: Mutex<TimeZoneManager> = Mutex::new(unsafe { initialize_t
 
 /// TimeZone service object.
 #[derive(Default, Debug)]
-pub struct TimeZoneService;
+pub struct TimeZoneService {
+    pub unknown: u64
+}
+
+impl Drop for TimeZoneService {
+    fn drop(&mut self) {
+        info!("DROP TZ");
+    }
+}
 
 fn calendar_to_tzlib(ipc_calendar: &CalendarTime) -> sunrise_libtimezone::CalendarTimeInfo {
     let mut res = sunrise_libtimezone::CalendarTimeInfo::default();
@@ -96,29 +104,43 @@ fn calendar_to_ipc(tzlib_calendar: sunrise_libtimezone::CalendarTime) -> (Calend
 object! {
     impl TimeZoneService {
         #[cmdid(0)]
+        #[inline(never)]
         fn get_device_location_name(&mut self, ) -> Result<(LocationNameInternal, ), Error> {
             let res = TZ_MANAGER.lock().get_device_location_name();
             Ok((res, ))
         }
 
         #[cmdid(1)]
+        #[inline(never)]
         fn set_device_location_name(&mut self, location: LocationNameInternal,) -> Result<(), Error> {
             TZ_MANAGER.lock().set_device_location_name(location)
         }
 
-        #[cmdid(3)]
+        #[cmdid(2)]
+        #[inline(never)]
         fn get_total_location_name_count(&mut self,) -> Result<(u32, ), Error> {
             TZ_MANAGER.lock().get_total_location_name_count()
         }
 
         #[cmdid(4)]
+        #[inline(never)]
         fn load_timezone_rule(&mut self, location: LocationNameInternal, tz_rules: OutBuffer<TimeZoneRule>, ) -> Result<(), Error> {
             let mut tz_rules = tz_rules;
             *tz_rules = TimeZoneRule::default();
             Ok(())
         }
 
+        #[cmdid(5)]
+        #[inline(never)]
+        fn test(&mut self, test: OutBuffer<LocationNameInternal>, ) -> Result<(), Error> {
+            let mut test = test;
+
+            test[0] = b'A';
+            Ok(())
+        }
+
         #[cmdid(100)]
+        #[inline(never)]
         fn to_calendar_time(&mut self, time: PosixTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(CalendarTime, CalendarAdditionalInfo, ), Error> {
             let res = timezone_buffer.deref().to_calendar_time(time);
             if res.is_err() {
@@ -132,6 +154,7 @@ object! {
         }
 
         #[cmdid(200)]
+        #[inline(never)]
         fn to_posix_time(&mut self, calendar_time: CalendarTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(PosixTime, ), Error> {
             let res = timezone_buffer.deref().to_posix_time(&calendar_to_tzlib(&calendar_time));
             if res.is_err() {

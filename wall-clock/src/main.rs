@@ -21,6 +21,8 @@
 extern crate sunrise_libuser;
 #[macro_use]
 extern crate alloc;
+#[macro_use]
+extern crate log;
 
 use sunrise_libuser::terminal::{Terminal, WindowSize};
 use sunrise_libuser::io::{self, Io};
@@ -28,6 +30,7 @@ use sunrise_libuser::syscalls;
 use core::fmt::Write;
 
 use sunrise_libuser::time::{StaticService, TimeZoneRule};
+use spin::Mutex;
 
 /// IBM Real Time Clock provides access to the current date and time (at second
 /// precision). The Real Time Clock is actually part of the CMOS on
@@ -124,13 +127,9 @@ fn get_month(month: u8) -> &'static str {
     }
 }
 
-fn main() {
-    let mut time = StaticService::raw_new_time_u().unwrap();
-    let mut timezone_service = time.get_timezone_service().unwrap();
+pub static TIMEZONE_RULE: Mutex<TimeZoneRule> = Mutex::new([0x0; 0x4000]);
 
-    let mut tz_rules = [0x0; 0x4000];
-    let location = b"Europe/Paris\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    timezone_service.load_timezone_rule(*location, &mut tz_rules).unwrap();
+fn main() {
     let mut rtc = Rtc::new();
 
     let irq = syscalls::create_interrupt_event(0x08, 0).unwrap();
@@ -138,6 +137,15 @@ fn main() {
     rtc.enable_update_ended_int();
 
     let mut logger = Terminal::new(WindowSize::FontLines(1, true)).unwrap();
+    let mut time = StaticService::raw_new_time_u().unwrap();
+    let mut timezone_service = time.get_timezone_service().unwrap();
+    //let mut tz_rules = [0x0; 0x4000];
+    debug!("Hello");
+    let mut location = [0x0; 0x24]; // b"Europe/Paris\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    let mut rule = TIMEZONE_RULE.lock();
+    let res = timezone_service.test(&mut location).err();
+    debug!("Hello {:?}", res);
+    //
 
     loop {
         syscalls::wait_synchronization(&[irq.0.as_ref()], None).unwrap();

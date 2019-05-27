@@ -23,6 +23,9 @@ extern crate sunrise_libuser;
 #[macro_use]
 extern crate alloc;
 
+#[macro_use]
+extern crate log;
+
 mod timezone;
 
 use alloc::prelude::*;
@@ -69,7 +72,7 @@ object! {
     impl StaticService {
         #[cmdid(3)]
         fn get_timezone_service(&mut self, manager: &WaitableManager,) -> Result<(Handle,), Error> {
-            let timezone_instance = TimeZoneService;
+            let timezone_instance = TimeZoneService::default();
             let (server, client) = syscalls::create_session(false, 0)?;
             let wrapper = SessionWrapper::new(server, timezone_instance);
             manager.add_waitable(Box::new(wrapper) as Box<dyn IWaitable>);

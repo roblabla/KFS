@@ -7,3 +7,5 @@ edition = "2018"
 
 [dependencies]
 sunrise-libuser = { path = "../libuser" }
+log = "0.4.6"
+spin = "0.5"
