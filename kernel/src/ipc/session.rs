@@ -27,6 +27,7 @@ use crate::sync::SpinLock;
 use crate::error::UserspaceError;
 use crate::event::Waitable;
 use crate::process::ThreadStruct;
+use crate::sync::MutexGuard;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::slice;
 use byteorder::{LE, ByteOrder};
@@ -399,7 +400,7 @@ impl ServerSession {
             CBufBehavior::Disabled
         };
 
-        pass_message(sender_buf, active.sender.clone(), &mut *buf, scheduler::get_current_thread(), false, &*memlock, c_bufs)?;
+        pass_message(sender_buf, active.sender.clone(), &mut *buf, scheduler::get_current_thread(), false, memlock, c_bufs)?;
 
         Ok(())
     }
@@ -432,7 +433,7 @@ impl ServerSession {
             slice::from_raw_parts_mut(mapping.addr().addr() as *mut u8, mapping.len())
         };
 
-        pass_message(&*buf, scheduler::get_current_thread(), sender_buf, active.sender.clone(), true, &*memlock, CBufBehavior::Disabled)?;
+        pass_message(&*buf, scheduler::get_current_thread(), sender_buf, active.sender.clone(), true, memlock, CBufBehavior::Disabled)?;
 
         *active.answered.lock() = Some(Ok(()));
 
@@ -472,7 +473,7 @@ enum CBufBehavior {
 /// This function should always be called from the context of the receiver/
 /// server.
 #[allow(unused)]
-fn pass_message(from_buf: &[u8], from_proc: Arc<ThreadStruct>, to_buf: &mut [u8], to_proc: Arc<ThreadStruct>, is_reply: bool, other_memlock: &ProcessMemory, c_bufs: CBufBehavior) -> Result<(), UserspaceError> {
+fn pass_message(from_buf: &[u8], from_proc: Arc<ThreadStruct>, to_buf: &mut [u8], to_proc: Arc<ThreadStruct>, is_reply: bool, other_memlock: MutexGuard<ProcessMemory>, c_bufs: CBufBehavior) -> Result<(), UserspaceError> {
     // TODO: pass_message deadlocks when sending message to the same process.
     // BODY: If from_proc and to_proc are the same process, pass_message will
     // BODY: deadlock trying to acquire the locks to the handle table or the
@@ -596,8 +597,11 @@ fn pass_message(from_buf: &[u8], from_proc: Arc<ThreadStruct>, to_buf: &mut [u8]
     }
 
     if hdr.num_a_descriptors() != 0 || hdr.num_b_descriptors() != 0 {
-        let mut from_mem = from_proc.process.pmemory.lock();
-        let mut to_mem = to_proc.process.pmemory.lock();
+        let (mut from_mem,  mut to_mem) = if is_reply {
+            (from_proc.process.pmemory.lock(), other_memlock)
+        } else {
+            (other_memlock, to_proc.process.pmemory.lock())
+        };
 
         for i in 0..hdr.num_a_descriptors() {
             buf_map(from_buf, to_buf, &mut curoff, &mut *from_mem, &mut *to_mem, MappingAccessRights::empty())?;
