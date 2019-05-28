@@ -81,7 +81,6 @@ object! {
     }
 }
 
-
 fn main() {
     let man = WaitableManager::new();
     let user_handler = Box::new(PortHandler::<StaticService>::new("time:u\0").unwrap());
