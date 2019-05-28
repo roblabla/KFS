@@ -200,7 +200,8 @@ impl<'a> IPCBuffer<'a> {
     fn out_buffer<T: SizedIPCBuffer + ?Sized>(data: &T, flags: u8) -> IPCBuffer {
         IPCBuffer {
             addr: data as *const T as *const u8 as usize as u64,
-            size: data.size() as u64,
+            // The dereference is necessary because &T implements SizedIPCBuffer too...
+            size: (*data).size() as u64,
             ty: IPCBufferType::A {
                 flags
             },
@@ -212,7 +213,8 @@ impl<'a> IPCBuffer<'a> {
     fn in_buffer<T: SizedIPCBuffer + ?Sized>(data: &mut T, flags: u8) -> IPCBuffer {
         IPCBuffer {
             addr: data as *mut T as *const u8 as usize as u64,
-            size: data.size() as u64,
+            // The dereference is necessary because &T implements SizedIPCBuffer too...
+            size: (*data).size() as u64,
             ty: IPCBufferType::B {
                 flags
             },
@@ -227,7 +229,8 @@ impl<'a> IPCBuffer<'a> {
     fn in_pointer<T: SizedIPCBuffer + ?Sized>(data: &mut T, has_u16_size: bool) -> IPCBuffer {
         IPCBuffer {
             addr: data as *mut T as *const u8 as usize as u64,
-            size: data.size() as u64,
+            // The dereference is necessary because &T implements SizedIPCBuffer too...
+            size: (*data).size() as u64,
             ty: IPCBufferType::C {
                 has_u16_size
             },
@@ -241,7 +244,8 @@ impl<'a> IPCBuffer<'a> {
     fn out_pointer<T: SizedIPCBuffer + ?Sized>(data: &T, counter: u8) -> IPCBuffer {
         IPCBuffer {
             addr: data as *const T as *const u8 as usize as u64,
-            size: data.size() as u64,
+            // The dereference is necessary because &T implements SizedIPCBuffer too...
+            size: (*data).size() as u64,
             ty: IPCBufferType::X {
                 counter
             },
