@@ -81,7 +81,14 @@ object! {
     }
 }
 
+use generic_array::GenericArray;
+use generic_array::typenum::consts::U36;
+
 fn main() {
+    // Setup a default device location
+    let device_location_name: GenericArray<u8, U36> = GenericArray::clone_from_slice(b"Europe/Paris\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
+    timezone::TZ_MANAGER.lock().set_device_location_name(device_location_name).unwrap();
+
     let man = WaitableManager::new();
     let user_handler = Box::new(PortHandler::<StaticService>::new("time:u\0").unwrap());
     let applet_handler = Box::new(PortHandler::<StaticService>::new("time:a\0").unwrap());

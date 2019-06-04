@@ -52,6 +52,18 @@ interface sunrise_libuser::time::StaticService is time:u, time:a, time:s {
     [3] get_timezone_service() -> object<sunrise_libuser::time::TimeZoneService>;
 }
 
+# RTC interface
+interface sunrise_libuser::time::RTCManager is rtc {
+	# Get the current RTC time
+	[0] get_rtc_time() -> sunrise_libuser::time::PosixTime;
+
+	# Get the current RTC time
+	[1] set_rtc_time(sunrise_libuser::time::PosixTime);
+
+	# Event triggered on RTC time update
+	[2] get_rtc_event() -> handle<copy>;
+}
+
 # TimeZone service object
 interface sunrise_libuser::time::TimeZoneService {
 	# Get the time zone name used on this devie
@@ -78,9 +90,9 @@ interface sunrise_libuser::time::TimeZoneService {
 	# Conver a PosixTime to a local time using the device TimeZoneRule
     [101] to_calendar_time_with_my_rule(sunrise_libuser::time::PosixTime) -> (sunrise_libuser::time::CalendarTime, sunrise_libuser::time::CalendarAdditionalInfo);
 
-	# Conver a local time to a PosixTime using a TimeZoneRule
-    [201] to_posix_time(sunrise_libuser::time::CalendarTime, buffer<sunrise_libuser::time::TimeZoneRule, 0x15, 0x4000>) -> (u32, array<sunrise_libuser::time::PosixTime, 0xa>);
+	# Conver a local time to a PosixTime using a TimeZoneRule.
+    [4201] to_posix_time(sunrise_libuser::time::CalendarTime, buffer<sunrise_libuser::time::TimeZoneRule, 0x15, 0x4000>) -> sunrise_libuser::time::PosixTime;
 
 	# Conver a local time to a PosixTime using the device TimeZoneRule
-    [202] to_posix_time_with_my_rule(sunrise_libuser::time::CalendarTime) -> (u32, array<sunrise_libuser::time::PosixTime, 0xa>);
+    [4202] to_posix_time_with_my_rule(sunrise_libuser::time::CalendarTime) -> sunrise_libuser::time::PosixTime;
 }
