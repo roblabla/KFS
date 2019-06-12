@@ -9,6 +9,7 @@ use generic_array::GenericArray;
 use generic_array::typenum::consts::U36;
 
 use sunrise_libuser::error::Error;
+use sunrise_libuser::error::TimeError;
 use sunrise_libuser::ipc::*;
 
 use sunrise_libuser::time::CalendarTime;
@@ -16,6 +17,7 @@ use sunrise_libuser::time::CalendarAdditionalInfo;
 use sunrise_libuser::time::PosixTime;
 
 use sunrise_libtimezone::TimeZoneRule;
+use sunrise_libtimezone::TimeZoneError;
 
 use sunrise_libutils::initialize_to_zero;
 
@@ -106,12 +108,13 @@ impl TimeZoneManager {
     /// 
     /// This also load the new timezone rule.
     pub fn set_device_location_name(&mut self, location: LocationNameInternal) -> IpcResult<()> {
-        let path = format!("zoneinfo/{}", unsafe { core::str::from_utf8_unchecked(&location) });
+        let location_name = core::str::from_utf8(&location).or(Err(TimeError::TimeZoneNotFound))?;
 
-        let path_trim = path.trim_matches(char::from(0));
+        let path = format!("zoneinfo/{}", location_name);
+
+        let path_trim = path.trim_matches('\0');
         if !TimeZoneFileSystem::file_exist(path_trim.as_bytes()) {
-            // TODO 0x7BA74 - not found
-            panic!()
+            return Err(TimeError::TimeZoneNotFound.into());
         } 
         self.set_device_location_name_unchecked(location);
         self.load_timezone_rule(location, None)
@@ -130,15 +133,15 @@ impl TimeZoneManager {
 
     /// Load a time zone rule.
     pub fn load_timezone_rule(&mut self, location: LocationNameInternal, timezone_rule: Option<&mut TimeZoneRule>) -> IpcResult<()> {
-        let path = format!("zoneinfo/{}", unsafe { core::str::from_utf8_unchecked(&location) });
+        let location_name = core::str::from_utf8(&location).or(Err(TimeError::TimeZoneNotFound))?;
+        let path = format!("zoneinfo/{}", location_name);
 
-        let path_trim = path.trim_matches(char::from(0));
+        let path_trim = path.trim_matches('\0');
 
         // FIXME: use binaryList.txt
         let file = TimeZoneFileSystem::open_file(path_trim.as_bytes());
         if file.is_none() {
-            // TODO 0x7BA74 - not found
-            panic!()
+            return Err(TimeError::TimeZoneNotFound.into());
         }
 
         let file = file.unwrap();
@@ -159,8 +162,7 @@ impl TimeZoneManager {
         let res = timezone_rule.load_rules(tzdata, &mut self.temp_rules);
 
         if res.is_err() {
-            // TODO: 0x70E74 - conversion failed
-            panic!()
+            return Err(TimeError::TimeZoneConversionFailed.into());
         }
 
         Ok(())
@@ -220,6 +222,18 @@ fn calendar_to_ipc(tzlib_calendar: sunrise_libtimezone::CalendarTime) -> (Calend
     (calendar_time, additional_info)
 }
 
+/// Convert a timezone error to a time module error.
+fn to_timezone_to_time_error(error: TimeZoneError) -> Error {
+    let res = match error {
+        TimeZoneError::TimeNotFound | TimeZoneError::InvalidTimeComparison => TimeError::TimeNotFound,
+        TimeZoneError::Overflow => TimeError::Overflow,
+        TimeZoneError::OutOfRange => TimeError::OutOfRange,
+        _ => unimplemented!()
+    };
+
+    res.into()
+}
+
 object! {
     impl TimeZoneService {
         #[cmdid(0)]
@@ -263,9 +277,8 @@ object! {
         #[inline(never)]
         fn to_calendar_time(&mut self, time: PosixTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(CalendarTime, CalendarAdditionalInfo, ), Error> {
             let res = timezone_buffer.deref().to_calendar_time(time);
-            if res.is_err() {
-                // TODO: error managment here
-                panic!()
+            if let Err(error) = res {
+                return Err(to_timezone_to_time_error(error));
             }
 
             let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
@@ -280,9 +293,8 @@ object! {
             let rules = manager.get_my_rules();
             
             let res = rules.to_calendar_time(time);
-            if res.is_err() {
-                // TODO: error managment here
-                panic!()
+            if let Err(error) = res {
+                return Err(to_timezone_to_time_error(error));
             }
 
             let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
@@ -294,9 +306,8 @@ object! {
         #[inline(never)]
         fn to_posix_time(&mut self, calendar_time: CalendarTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(PosixTime, ), Error> {
             let res = timezone_buffer.deref().to_posix_time(&calendar_to_tzlib(calendar_time));
-            if res.is_err() {
-                // TODO: error managment here
-                panic!()
+            if let Err(error) = res {
+                return Err(to_timezone_to_time_error(error));
             }
 
             Ok((res.unwrap(), ))
@@ -309,9 +320,8 @@ object! {
             let rules = manager.get_my_rules();
 
             let res = rules.to_posix_time(&calendar_to_tzlib(calendar_time));
-            if res.is_err() {
-                // TODO: error managment here
-                panic!()
+            if let Err(error) = res {
+                return Err(to_timezone_to_time_error(error));
             }
 
             Ok((res.unwrap(), ))
