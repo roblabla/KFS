@@ -35,6 +35,7 @@ use sunrise_libuser::ipc::server::{WaitableManager, PortHandler, IWaitable, Sess
 use sunrise_libuser::types::*;
 use sunrise_libuser::io::{self, Io};
 use sunrise_libuser::error::Error;
+use sunrise_libuser::time::{TimeZoneServiceProxy, RTCManager as _, StaticService as _, TimeZoneService as _};
 use sunrise_libutils::initialize_to_zero;
 use spin::Mutex;
 
@@ -71,16 +72,13 @@ capabilities!(CAPABILITIES = Capabilities {
 #[derive(Default, Debug)]
 struct StaticService;
 
-object! {
-    impl StaticService {
-        #[cmdid(3)]
-        fn get_timezone_service(&mut self, manager: &WaitableManager,) -> Result<(Handle,), Error> {
-            let timezone_instance = TimeZoneService::default();
-            let (server, client) = syscalls::create_session(false, 0)?;
-            let wrapper = SessionWrapper::new(server, timezone_instance);
-            manager.add_waitable(Box::new(wrapper) as Box<dyn IWaitable>);
-            Ok((client.into_handle(),))
-        }
+impl sunrise_libuser::time::StaticService for StaticService {
+    fn get_timezone_service(&mut self, manager: &WaitableManager) -> Result<TimeZoneServiceProxy, Error> {
+        let timezone_instance = TimeZoneService::default();
+        let (server, client) = syscalls::create_session(false, 0)?;
+        let wrapper = SessionWrapper::new(server, timezone_instance, TimeZoneService::dispatch);
+        manager.add_waitable(Box::new(wrapper) as Box<dyn IWaitable>);
+        Ok(TimeZoneServiceProxy::from(client))
     }
 }
 
@@ -236,17 +234,13 @@ impl IWaitable for Rtc {
     }
 }
 
-object! {
-    impl RTCManager {
-        #[cmdid(1)]
-        fn get_rtc_time(&mut self,) -> Result<(i64, ), Error> {
-            Ok((unsafe {RTC_INSTANCE.get_time() }, ))
-        }
+impl sunrise_libuser::time::RTCManager for RTCManager {
+    fn get_rtc_time(&mut self, _manager: &WaitableManager) -> Result<i64, Error> {
+        Ok(unsafe {RTC_INSTANCE.get_time() })
+    }
 
-        #[cmdid(3)]
-        fn get_rtc_event(&mut self,) -> Result<(HandleRef<'static>,), Error> {
-            Ok((unsafe {RTC_INSTANCE.get_irq_event_handle() },))
-        }
+    fn get_rtc_event(&mut self, _manager: &WaitableManager) -> Result<HandleRef<'static>, Error> {
+        Ok(unsafe {RTC_INSTANCE.get_irq_event_handle() })
     }
 }
 
@@ -255,16 +249,16 @@ use generic_array::typenum::consts::U36;
 
 fn main() {
     // Setup a default device location
-    let device_location_name: GenericArray<u8, U36> = GenericArray::clone_from_slice(b"Europe/Paris\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
-    timezone::TZ_MANAGER.lock().set_device_location_name(device_location_name).unwrap();
+    let device_location_name = b"Europe/Paris\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    timezone::TZ_MANAGER.lock().set_device_location_name(*device_location_name).unwrap();
 
     unsafe { RTC_INSTANCE = Rtc::new() };
 
     let man = WaitableManager::new();
-    let user_handler = Box::new(PortHandler::<StaticService>::new("time:u\0").unwrap());
-    let applet_handler = Box::new(PortHandler::<StaticService>::new("time:a\0").unwrap());
-    let system_handler = Box::new(PortHandler::<StaticService>::new("time:s\0").unwrap());
-    let rtc_handler = Box::new(PortHandler::<RTCManager>::new("rtc\0").unwrap());
+    let user_handler = Box::new(PortHandler::new("time:u\0", StaticService::dispatch).unwrap());
+    let applet_handler = Box::new(PortHandler::new("time:a\0", StaticService::dispatch).unwrap());
+    let system_handler = Box::new(PortHandler::new("time:s\0", StaticService::dispatch).unwrap());
+    let rtc_handler = Box::new(PortHandler::new("rtc\0", RTCManager::dispatch).unwrap());
 
     let rtc_instance = unsafe { Box::from_raw(&mut RTC_INSTANCE as *mut Rtc) };
 

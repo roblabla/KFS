@@ -11,6 +11,7 @@ use generic_array::typenum::consts::U36;
 use sunrise_libuser::error::Error;
 use sunrise_libuser::error::TimeError;
 use sunrise_libuser::ipc::*;
+use sunrise_libuser::ipc::server::WaitableManager;
 
 use sunrise_libuser::time::CalendarTime;
 use sunrise_libuser::time::CalendarAdditionalInfo;
@@ -23,7 +24,12 @@ use sunrise_libutils::initialize_to_zero;
 
 /// Type representing a LocationName.
 /// Used to get arround Default requirement of the IPC layer.
-type LocationNameInternal = GenericArray<u8, U36>;
+//type LocationNameInternal = GenericArray<u8, U36>;
+type LocationNameInternal = [u8; 36];
+
+/// Type representing a TimeZoneRule.
+/// Used to get arround Default requirement of the IPC layer.
+type TimeZoneRuleInternal = [u8; 16384];
 
 /// A IPC result.
 type IpcResult<T> = Result<T, Error>;
@@ -85,7 +91,6 @@ impl TimeZoneFileSystem {
 
 
 /// Global instance handling I/O and storage of the device rules.
-#[derive(Default)]
 pub struct TimeZoneManager {
     /// Time zone location name of this device.
     location: LocationNameInternal,
@@ -126,9 +131,9 @@ impl TimeZoneManager {
     }
 
     /// Get the total count of location name available
-    pub fn get_total_location_name_count(&self) -> IpcResult<(u32, )> {
+    pub fn get_total_location_name_count(&self) -> IpcResult<u32> {
         // TODO: Parse binaryList.txt
-        Ok((TimeZoneFileSystem::file_count(), ))
+        Ok(TimeZoneFileSystem::file_count())
     }
 
     /// Load a time zone rule.
@@ -232,97 +237,101 @@ fn to_timezone_to_time_error(error: TimeZoneError) -> Error {
     res.into()
 }
 
-object! {
-    impl TimeZoneService {
-        #[cmdid(0)]
-        #[inline(never)]
-        fn get_device_location_name(&mut self, ) -> Result<(LocationNameInternal, ), Error> {
-            let res = TZ_MANAGER.lock().get_device_location_name();
-            Ok((res, ))
+impl sunrise_libuser::time::TimeZoneService for TimeZoneService {
+    #[inline(never)]
+    fn get_device_location_name(&mut self, _manager: &WaitableManager) -> Result<LocationNameInternal, Error> {
+        let res = TZ_MANAGER.lock().get_device_location_name();
+        Ok(res)
+    }
+
+    #[inline(never)]
+    fn set_device_location_name(&mut self, _manager: &WaitableManager, location: LocationNameInternal,) -> Result<(), Error> {
+        TZ_MANAGER.lock().set_device_location_name(location)
+    }
+
+    #[inline(never)]
+    fn get_total_location_name_count(&mut self, _manager: &WaitableManager) -> Result<u32, Error> {
+        TZ_MANAGER.lock().get_total_location_name_count()
+    }
+
+    fn load_location_name_list(&mut self, _manager: &WaitableManager, unknown: u32, unknown2: &mut [LocationNameInternal]) -> Result<u32, Error> {
+        unimplemented!()
+    }
+
+    #[inline(never)]
+    fn load_timezone_rule(&mut self, _manager: &WaitableManager, location: LocationNameInternal, tz_rules: &mut TimeZoneRuleInternal, ) -> Result<(), Error> {
+        info!("HELLO YOU");
+
+        let mut tz_rules = unsafe {
+            // TODO: Use plain
+            (tz_rules as *mut _ as *mut TimeZoneRule).as_mut().unwrap()
+        };
+        TZ_MANAGER.lock().load_timezone_rule(location, Some(tz_rules))
+    }
+
+    /*#[inline(never)]
+    fn test(&mut self, _manager: &WaitableManager, test: OutBuffer<LocationNameInternal>, ) -> Result<(), Error> {
+        let mut test = test;
+
+        test[0] = b'A';
+        Ok(())
+    }*/
+
+    #[inline(never)]
+    fn to_calendar_time(&mut self, _manager: &WaitableManager, time: PosixTime, timezone_buffer: &TimeZoneRuleInternal, ) -> Result<(CalendarTime, CalendarAdditionalInfo), Error> {
+        let timezones = unsafe {
+            // TODO: Use plain
+            (timezone_buffer as *const _ as *const TimeZoneRule).as_ref().unwrap()
+        };
+        let res = timezones.to_calendar_time(time);
+        if let Err(error) = res {
+            return Err(to_timezone_to_time_error(error));
         }
 
-        #[cmdid(1)]
-        #[inline(never)]
-        fn set_device_location_name(&mut self, location: LocationNameInternal,) -> Result<(), Error> {
-            TZ_MANAGER.lock().set_device_location_name(location)
+        let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
+
+        Ok((calendar_time, calendar_additional_data, ))
+    }
+
+    #[inline(never)]
+    fn to_calendar_time_with_my_rule(&mut self, _manager: &WaitableManager, time: PosixTime, ) -> Result<(CalendarTime, CalendarAdditionalInfo), Error> {
+        let manager = TZ_MANAGER.lock();
+        let rules = manager.get_my_rules();
+        
+        let res = rules.to_calendar_time(time);
+        if let Err(error) = res {
+            return Err(to_timezone_to_time_error(error));
         }
 
-        #[cmdid(2)]
-        #[inline(never)]
-        fn get_total_location_name_count(&mut self,) -> Result<(u32, ), Error> {
-            TZ_MANAGER.lock().get_total_location_name_count()
+        let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
+
+        Ok((calendar_time, calendar_additional_data, ))
+    }
+
+    #[inline(never)]
+    fn to_posix_time(&mut self, _manager: &WaitableManager, calendar_time: CalendarTime, timezone_buffer: &TimeZoneRuleInternal, ) -> Result<PosixTime, Error> {
+        let timezones = unsafe {
+            // TODO: Use plain
+            (timezone_buffer as *const _ as *const TimeZoneRule).as_ref().unwrap()
+        };
+        let res = timezones.to_posix_time(&calendar_to_tzlib(calendar_time));
+        if let Err(error) = res {
+            return Err(to_timezone_to_time_error(error));
         }
 
-        #[cmdid(4)]
-        #[inline(never)]
-        fn load_timezone_rule(&mut self, location: LocationNameInternal, tz_rules: OutBuffer<TimeZoneRule>, ) -> Result<(), Error> {
-            info!("HELLO YOU");
+        Ok(res.unwrap())
+    }
 
-            let mut tz_rules = tz_rules;
-            TZ_MANAGER.lock().load_timezone_rule(location, Some(&mut tz_rules))
+    #[inline(never)]
+    fn to_posix_time_with_my_rule(&mut self, _manager: &WaitableManager, calendar_time: CalendarTime, ) -> Result<PosixTime, Error> {
+        let manager = TZ_MANAGER.lock();
+        let rules = manager.get_my_rules();
+
+        let res = rules.to_posix_time(&calendar_to_tzlib(calendar_time));
+        if let Err(error) = res {
+            return Err(to_timezone_to_time_error(error));
         }
 
-        #[cmdid(5)]
-        #[inline(never)]
-        fn test(&mut self, test: OutBuffer<LocationNameInternal>, ) -> Result<(), Error> {
-            let mut test = test;
-
-            test[0] = b'A';
-            Ok(())
-        }
-
-        #[cmdid(100)]
-        #[inline(never)]
-        fn to_calendar_time(&mut self, time: PosixTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(CalendarTime, CalendarAdditionalInfo, ), Error> {
-            let res = timezone_buffer.deref().to_calendar_time(time);
-            if let Err(error) = res {
-                return Err(to_timezone_to_time_error(error));
-            }
-
-            let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
-
-            Ok((calendar_time, calendar_additional_data, ))
-        }
-
-        #[cmdid(101)]
-        #[inline(never)]
-        fn to_calendar_time_with_my_rule(&mut self, time: PosixTime, ) -> Result<(CalendarTime, CalendarAdditionalInfo, ), Error> {
-            let manager = TZ_MANAGER.lock();
-            let rules = manager.get_my_rules();
-            
-            let res = rules.to_calendar_time(time);
-            if let Err(error) = res {
-                return Err(to_timezone_to_time_error(error));
-            }
-
-            let (calendar_time, calendar_additional_data) = calendar_to_ipc(res.unwrap());
-
-            Ok((calendar_time, calendar_additional_data, ))
-        }
-
-        #[cmdid(4201)]
-        #[inline(never)]
-        fn to_posix_time(&mut self, calendar_time: CalendarTime, timezone_buffer: InBuffer<TimeZoneRule>, ) -> Result<(PosixTime, ), Error> {
-            let res = timezone_buffer.deref().to_posix_time(&calendar_to_tzlib(calendar_time));
-            if let Err(error) = res {
-                return Err(to_timezone_to_time_error(error));
-            }
-
-            Ok((res.unwrap(), ))
-        }
-
-        #[cmdid(4202)]
-        #[inline(never)]
-        fn to_posix_time_with_my_rule(&mut self, calendar_time: CalendarTime, ) -> Result<(PosixTime, ), Error> {
-            let manager = TZ_MANAGER.lock();
-            let rules = manager.get_my_rules();
-
-            let res = rules.to_posix_time(&calendar_to_tzlib(calendar_time));
-            if let Err(error) = res {
-                return Err(to_timezone_to_time_error(error));
-            }
-
-            Ok((res.unwrap(), ))
-        }
+        Ok(res.unwrap())
     }
 }
