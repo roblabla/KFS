@@ -52,7 +52,7 @@ pub fn ping(device: VirtioNet) {
 
     debug!("Starting loop:");
     loop {
-        let timestamp = Instant::from_millis(syscalls::get_system_tick().wrapping_mul(12) as i64 / 625_000_000);
+        let timestamp = Instant::from_millis(syscalls::get_system_tick().unwrap().wrapping_mul(12) as i64 / 625_000_000);
         match iface.poll(&mut sockets, timestamp) {
             Ok(_) => {},
             Err(e) => {

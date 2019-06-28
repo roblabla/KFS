@@ -757,3 +757,11 @@ pub fn get_process_list(list: &mut [u64]) -> Result<usize, KernelError> {
         Ok(read)
     }
 }
+
+pub fn get_system_tick() -> Result<u64, KernelError> {
+    unsafe {
+        // Safety: Syscall to GetSystemTick is always safe.
+        let (systick_lo, systick_hi, ..) = syscall(nr::GetSystemTick, 0, 0, 0, 0, 0, 0)?;
+        Ok((systick_lo as u64) | ((systick_hi as u64) << 32))
+    }
+}

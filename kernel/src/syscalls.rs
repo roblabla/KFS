@@ -24,7 +24,7 @@ use crate::timer;
 use failure::Backtrace;
 use sunrise_libkern::{MemoryInfo, MemoryAttributes, MemoryPermissions, MemoryType, MemoryState};
 use sunrise_libkern::process::*;
-use bit_field::BitArray;
+use bit_field::{BitField, BitArray};
 use crate::i386::gdt::{GDT, GdtIndex};
 use core::convert::{TryFrom, TryInto};
 
@@ -592,6 +592,15 @@ pub fn query_memory(mut meminfo: UserSpacePtrMut<MemoryInfo>, _unk: usize, addr:
     // BODY: Properly return Page Information. The horizon/NX page-info stuff
     //       is not really documented yet, so this will require some RE work.
     Ok(0)
+}
+
+/// Returns the current system tick (if you're a linuxian, you might call this
+/// a jiffie).
+///
+/// The frequency is 19200000 Hz (constant from official sw).
+pub fn get_system_tick() -> Result<(usize, usize), UserspaceError> {
+    let tick = crate::timer::get_tick().wrapping_mul(625) / 12; // Accurate way of doing * 52.083333
+    Ok((tick.get_bits(0..32) as usize, tick.get_bits(32..64) as usize))
 }
 
 /// Create a new Session pair. Those sessions are linked to each-other: The
