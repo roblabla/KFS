@@ -1077,6 +1077,13 @@ irq_handler!(
     14, primary_ata_handler,   primary_ata_handler_asm_wrapper,   primary_ata_handler_rust_wrapper;
     15, secondary_ata_handler, secondary_ata_handler_asm_wrapper, secondary_ata_handler_rust_wrapper;
     16, hpet_handler,          hpet_handler_asm_wrapper,          hpet_handler_rust_wrapper;
+    17, irq17_handler,         irq17_handler_asm_wrapper,         irq17_handler_rust_wrapper;
+    18, irq18_handler,         irq18_handler_asm_wrapper,         irq18_handler_rust_wrapper;
+    19, network_handler,       network_handler_asm_wrapper,       network_handler_rust_wrapper;
+    20, irq20_handler,         irq20_handler_asm_wrapper,         irq20_handler_rust_wrapper;
+    21, irq21_handler,         irq21_handler_asm_wrapper,         irq21_handler_rust_wrapper;
+    22, irq22_handler,         irq22_handler_asm_wrapper,         irq22_handler_rust_wrapper;
+    23, irq23_handler,         irq23_handler_asm_wrapper,         irq23_handler_rust_wrapper;
 );
 
 lazy_static! {

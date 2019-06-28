@@ -306,10 +306,11 @@ impl IRQState {
 }
 
 /// Global state for all the IRQ handled by the IOAPIC.
-static IRQ_STATES: [IRQState; 17] = [
+static IRQ_STATES: [IRQState; 24] = [
     IRQState::new(0x20), IRQState::new(0x21), IRQState::new(0x22), IRQState::new(0x23),
     IRQState::new(0x24), IRQState::new(0x25), IRQState::new(0x26), IRQState::new(0x27),
     IRQState::new(0x28), IRQState::new(0x29), IRQState::new(0x2A), IRQState::new(0x2B),
     IRQState::new(0x2C), IRQState::new(0x2D), IRQState::new(0x2E), IRQState::new(0x2F),
-    IRQState::new(0x30),
+    IRQState::new(0x30), IRQState::new(0x31), IRQState::new(0x32), IRQState::new(0x33),
+    IRQState::new(0x34), IRQState::new(0x35), IRQState::new(0x36), IRQState::new(0x37),
 ];
