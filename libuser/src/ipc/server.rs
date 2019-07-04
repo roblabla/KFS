@@ -449,7 +449,7 @@ where
                     .map(|_| false)
                     .unwrap_or_else(|err| { error!("Dispatch method errored out: {:?}", err); true }),
                 Some((2, _)) => true,
-                Some((5, cmdid)) | Some((7, cmdid)) => control_dispatch(&mut object, dispatch.clone(), work_queue.clone(), cmdid, &mut buf[..])
+                Some((5, cmdid)) | Some((7, cmdid)) => control_dispatch(&mut object, dispatch.clone(), work_queue.clone(), cmdid, &mut buf[..], &mut pointer_buf)
                     .map(|_| false)
                     .unwrap_or_else(|err| { error!("Dispatch method errored out: {:?}", err); true }),
                 _ => true,
@@ -467,7 +467,7 @@ where
 /// Implement the Control ipc cmd types.
 ///
 /// See [switchbrew](https://switchbrew.org/w/index.php?title=IPC_Marshalling#Control)
-fn control_dispatch<T, DISPATCH>(object: &mut T, dispatch: DISPATCH, manager: WorkQueue<'static>, cmdid: u32, buf: &mut [u8]) -> Result<(), Error>
+fn control_dispatch<T, DISPATCH>(object: &mut T, dispatch: DISPATCH, manager: WorkQueue<'static>, cmdid: u32, buf: &mut [u8], pointer_buf: &mut [u8]) -> Result<(), Error>
 where
     DISPATCH: for<'b> hrtb_hack::FutureCallback<(&'b mut T, WorkQueue<'static>, u32, &'b mut [u8]), Result<(), Error>>,
     DISPATCH: Unpin + Send + Clone + 'static,
@@ -482,6 +482,13 @@ where
 
             let mut msg__ = Message::<(), [_; 0], [_; 0], [_; 1]>::new_response(None);
             msg__.push_handle_move(client.into_handle());
+            msg__.pack(buf);
+            Ok(())
+        },
+        3 => {
+            // QueryPointerBufferSize
+            let mut msg__ = Message::<u16, [_; 0], [_; 0], [_; 0]>::new_response(None);
+            msg__.push_raw(pointer_buf.len() as u16);
             msg__.pack(buf);
             Ok(())
         },
