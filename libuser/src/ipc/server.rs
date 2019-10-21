@@ -168,7 +168,7 @@
 //! use sunrise_libuser::error::Error;
 //! use sunrise_libuser::ipc::server::new_session_wrapper;
 //!
-//! #[derive(Debug, Default)]
+//! #[derive(Debug, Default, Clone)]
 //! struct HelloInterface;
 //!
 //! impl IExample3 for HelloInterface {
