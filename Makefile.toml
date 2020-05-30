@@ -32,6 +32,7 @@ QEMU_COMMON_FLAGS = """\
     -no-reboot \
     -drive id=diskA,file=DISK.img,format=raw,if=none -device ahci,id=ahci \
     -device ide-drive,drive=diskA,bus=ahci.0 \
+    -device virtio-net,disable-legacy=on,netdev=u1 -netdev user,id=u1 \
     -machine q35 \
     -m 512M"""
 
@@ -118,6 +119,12 @@ dependencies = ["install-xargo", "setup-rust"]
 command = "xargo"
 args = ["build", "--target=i386-unknown-sunrise-user", "--package=sunrise-ahci", "@@split(COMPILER_FLAGS, )"]
 
+[tasks.virtio]
+description = "Compiles sunrise-virtio"
+dependencies = ["install-xargo", "setup-rust"]
+command = "xargo"
+args = ["build", "--target=i386-unknown-sunrise-user", "--package=sunrise-virtio", "@@split(COMPILER_FLAGS, )"]
+
 [tasks.time]
 description = "Compiles sunrise-time"
 dependencies = ["install-xargo", "setup-rust"]
@@ -171,9 +178,9 @@ internal = true
 command = "xargo"
 args = ["build", "--target=i386-unknown-sunrise-user", "@@split(COMPILER_FLAGS, )",
     "-p", "sunrise-shell", "-p", "sunrise-wall-clock", "-p", "sunrise-sm",
-    "-p", "sunrise-vi", "-p", "sunrise-ahci", "-p", "sunrise-time",
-    "-p", "sunrise-fs", "-p", "sunrise-loader", "-p", "sunrise-keyboard",
-    "-p", "sunrise-twili"
+    "-p", "sunrise-vi", "-p", "sunrise-ahci", "-p", "sunrise-virtio",
+    "-p", "sunrise-time", "-p", "sunrise-fs", "-p", "sunrise-loader",
+    "-p", "sunrise-keyboard", "-p", "sunrise-twili"
 ]
 
 [tasks.userspace]
@@ -194,6 +201,7 @@ cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-wall-clock     isofile
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-sm             isofiles/boot/
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-vi             isofiles/boot/
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-ahci           isofiles/boot/
+cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-virtio         isofiles/boot/
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-fs             isofiles/boot/
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-loader         isofiles/boot/
 cp target/i386-unknown-sunrise-user/$PROFILE_NAME/sunrise-keyboard       isofiles/boot/
@@ -266,6 +274,7 @@ args = ["doc", "--no-deps", "--document-private-items",
     "-p", "sunrise-sm",
     "-p", "sunrise-vi",
     "-p", "sunrise-ahci",
+    "-p", "sunrise-virtio",
     "-p", "sunrise-fs",
     "-p", "sunrise-libutils",
     "-p", "sunrise-libkern",
@@ -298,6 +307,7 @@ args = ["test", "--target=i686-unknown-linux-gnu",
     "-p", "sunrise-sm",
     "-p", "sunrise-vi",
     "-p", "sunrise-ahci",
+    "-p", "sunrise-virtio",
     "-p", "sunrise-fs",
     "-p", "sunrise-libutils",
     "-p", "sunrise-libkern",
@@ -335,6 +345,7 @@ args = ["clippy", "--target=i386-unknown-sunrise-user",
     "-p", "sunrise-sm",
     "-p", "sunrise-vi",
     "-p", "sunrise-ahci",
+    "-p", "sunrise-virtio",
     "-p", "sunrise-fs",
     "-p", "sunrise-libutils",
     "-p", "sunrise-libkern",
