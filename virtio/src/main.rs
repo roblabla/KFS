@@ -7,7 +7,7 @@
 //! interfaces are implemented.
 
 #![no_std]
-#![feature(underscore_const_names, slice_concat_ext)]
+#![feature(underscore_const_names)]
 
 #[macro_use]
 extern crate alloc;

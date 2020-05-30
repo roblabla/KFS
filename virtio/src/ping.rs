@@ -6,7 +6,6 @@ use sunrise_libuser::error::KernelError;
 use sunrise_libuser::types::HandleRef;
 use smoltcp::time::Duration;
 use alloc::borrow::ToOwned;
-use alloc::slice::SliceConcatExt;
 use core::str;
 
 pub fn ping(device: VirtioNet) {
@@ -105,6 +104,6 @@ fn wait(handle: HandleRef<'_>, duration: Option<Duration>) -> Result<(), ()> {
             Ok(())
         },
         Err(KernelError::Timeout) => Ok(()),
-        Err(err) => Err(()) 
+        Err(err) => Err(())
     }
 }
