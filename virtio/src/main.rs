@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
-use sunrise_libuser::capabilities;
+use sunrise_libuser::{capabilities, kip_header};
 use sunrise_libuser::syscalls;
 use sunrise_libuser::types::ReadableEvent;
 use sunrise_libuser::pci::{discover as pci_discover, PciHeader, PciDevice,
@@ -540,6 +540,18 @@ fn main() {
     man.run();*/
 }
 
+kip_header!(HEADER = sunrise_libuser::caps::KipHeader {
+    magic: *b"KIP1",
+    name: *b"virtio\0\0\0\0\0\0",
+    title_id: 0x0200000000000100,
+    process_category: sunrise_libuser::caps::ProcessCategory::KernelBuiltin,
+    main_thread_priority: 0,
+    default_cpu_core: 0,
+    flags: 0,
+    reserved: 0,
+    stack_page_count: 16,
+});
+
 capabilities!(CAPABILITIES = Capabilities {
     svcs: [
         sunrise_libuser::syscalls::nr::SleepThread,
@@ -547,6 +559,7 @@ capabilities!(CAPABILITIES = Capabilities {
         sunrise_libuser::syscalls::nr::CloseHandle,
         sunrise_libuser::syscalls::nr::WaitSynchronization,
         sunrise_libuser::syscalls::nr::OutputDebugString,
+        sunrise_libuser::syscalls::nr::SetThreadArea,
 
         sunrise_libuser::syscalls::nr::SetHeapSize,
         sunrise_libuser::syscalls::nr::QueryMemory,
