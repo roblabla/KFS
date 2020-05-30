@@ -1051,7 +1051,7 @@ macro_rules! irq_handler {
         /// Array of interrupt handlers.
         ///
         /// The position in the array defines the IRQ this handler is targeting. See [`irq_handler`].
-        static IRQ_HANDLERS : [extern "C" fn(); 17] = [
+        static IRQ_HANDLERS : [extern "C" fn(); 24] = [
             $(
                 $asm_wrapper_name,
             )*
